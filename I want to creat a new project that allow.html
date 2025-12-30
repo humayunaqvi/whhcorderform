@@ -1,0 +1,629 @@
+I want to creat a new project that allows me to optimize flow of patient intake in my cardiology clinic and use a order form to create a patient after visit summary, written instruction page for patient and to do list consolidated for the staff
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Visit Sheet</title>
+  <!-- Microsoft Authentication Library -->
+  <script src="https://alcdn.msauth.net/browser/2.38.1/js/msal-browser.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 10px; color: #333; }
+    h1 { text-align: center; color: #c00; margin-bottom: 10px; }
+    form { max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 10px; border-radius: 6px; background: #fafafa; }
+    label { display: flex; align-items: center; margin: 6px 0; }
+    label > input, label > textarea, label > select { margin-left: 8px; flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+    #categories fieldset { margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    #categories div { display: flex; align-items: center; margin: 6px 0; }
+    #categories div input[type="checkbox"] { margin-right: 8px; }
+    #categories div input[type="number"],
+    #categories div select,
+    #categories div input[type="text"] { margin-left: auto; width: 100px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+    button { width: 100%; padding: 10px; background: #c00; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+    button:hover { background: #a00; }
+    #onedrive-btn { background: #0078d4; margin-top: 5px; }
+    #onedrive-btn:hover { background: #005a9e; }
+    #onedrive-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .config-section { margin: 10px 0; padding: 10px; background: #e8f4f8; border: 1px solid #0078d4; border-radius: 4px; }
+    .config-section label { display: block; margin: 5px 0; font-size: 13px; }
+    .config-section input { width: calc(100% - 16px); padding: 6px; margin-top: 5px; }
+    .status-message { margin-top: 10px; padding: 8px; border-radius: 4px; font-size: 14px; display: none; }
+    .status-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .status-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .instructions-toggle { cursor: pointer; color: #0078d4; text-decoration: underline; margin-top: 5px; font-size: 12px; }
+    .instructions-content { display: none; margin-top: 10px; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
+    .instructions-content.show { display: block; }
+    @media (max-width: 600px) {
+      label { flex-direction: column; align-items: flex-start; }
+      label > input, label > textarea, label > select { margin-left: 0; width: 100%; }
+      #categories div { flex-direction: column; align-items: flex-start; }
+      #categories div input[type="number"], #categories div select, #categories div input[type="text"] { margin: 6px 0 0 24px; width: calc(100% - 24px); }
+    }
+  </style>
+</head>
+<body>
+  <h1>Daily Visit Sheet</h1>
+  <form id="order-form">
+    <label>Patient Name:<input type="text" id="patient-name" required></label>
+    <label>Date of Birth:<input type="date" id="dob"></label>
+    <label>Date of Service:<input type="date" id="dos" readonly></label>
+    <div id="categories"></div>
+    <label>Follow-up visit:<input type="text" id="followup" placeholder="e.g., 2 weeks"></label>
+    <label>Refer to:<input type="text" id="referto" placeholder="Doctor name & speciality"></label>
+    <label>Instructions for Patient:<textarea id="instructions" rows="4" placeholder="Enter any additional instructions..."></textarea></label>
+    <button type="submit">Generate Print Page</button>
+    <button type="button" id="onedrive-btn" onclick="uploadToOneDrive()">Upload Staff To-Do List to OneDrive</button>
+    <div id="status-message" class="status-message"></div>
+    <div class="config-section">
+      <label><strong>Microsoft Azure Configuration (Optional - for OneDrive upload):</strong></label>
+      <label>Azure Client ID: <input type="text" id="client-id" placeholder="Enter your Azure App Client ID"></label>
+      <label>Tenant ID (optional): <input type="text" id="tenant-id" placeholder="common or your tenant ID"></label>
+      <div class="instructions-toggle" onclick="toggleInstructions()">📋 Click here for setup instructions</div>
+      <div class="instructions-content" id="instructions-content">
+        <strong>How to set up Azure App Registration for OneDrive upload:</strong><br><br>
+        1. Go to <a href="https://portal.azure.com" target="_blank">Azure Portal</a> (portal.azure.com)<br>
+        2. Navigate to "Azure Active Directory" → "App registrations" → "New registration"<br>
+        3. Enter a name (e.g., "Cardiology Clinic OneDrive Upload")<br>
+        4. Select "Accounts in any organizational directory and personal Microsoft accounts"<br>
+        5. Set Redirect URI: Web → <code id="redirect-uri-display"></code><br>
+        6. Click "Register"<br>
+        7. Copy the "Application (client) ID" and paste it in the Client ID field above<br>
+        8. Go to "Authentication" → Enable "Access tokens" and "ID tokens"<br>
+        9. Go to "API permissions" → Add permission → Microsoft Graph → Delegated permissions<br>
+        10. Add: <code>Files.ReadWrite</code> and <code>User.Read</code><br>
+        11. Click "Grant admin consent" (if you have admin rights)<br><br>
+        <strong>Note:</strong> After setup, files will be uploaded to your OneDrive in a "Staff_ToDo_Lists" folder (or root if folder doesn't exist).<br><br>
+        <strong>Important:</strong> For OneDrive upload to work, this HTML file must be served from a web server (not opened directly as file://). You can use a simple local server like Python's http.server or serve it from a web hosting service.
+      </div>
+    </div>
+  </form>
+  <script>
+    // Microsoft Graph API Configuration
+    const msalConfig = {
+      auth: {
+        clientId: '', // Will be set from input
+        authority: 'https://login.microsoftonline.com/common',
+        redirectUri: window.location.origin
+      },
+      cache: {
+        cacheLocation: 'sessionStorage',
+        storeAuthStateInCookie: false
+      }
+    };
+    
+    const loginRequest = {
+      scopes: ['Files.ReadWrite', 'User.Read']
+    };
+    
+    let msalInstance = null;
+    
+    // Initialize MSAL
+    function initializeMSAL() {
+      const clientId = document.getElementById('client-id').value.trim();
+      const tenantId = document.getElementById('tenant-id').value.trim() || 'common';
+      
+      if (!clientId) {
+        showStatus('Please enter Azure Client ID to enable OneDrive upload', 'error');
+        return false;
+      }
+      
+      msalConfig.auth.clientId = clientId;
+      msalConfig.auth.authority = `https://login.microsoftonline.com/${tenantId}`;
+      
+      try {
+        msalInstance = new msal.PublicClientApplication(msalConfig);
+        return true;
+      } catch (error) {
+        showStatus('Error initializing Microsoft authentication: ' + error.message, 'error');
+        return false;
+      }
+    }
+    
+    // Get access token for Microsoft Graph API
+    async function getAccessToken() {
+      if (!msalInstance) {
+        if (!initializeMSAL()) return null;
+      }
+      
+      try {
+        const accounts = msalInstance.getAllAccounts();
+        let account = accounts[0];
+        
+        if (!account) {
+          const response = await msalInstance.loginPopup(loginRequest);
+          account = response.account;
+        }
+        
+        try {
+          const response = await msalInstance.acquireTokenSilent({
+            ...loginRequest,
+            account: account
+          });
+          return response.accessToken;
+        } catch (error) {
+          const response = await msalInstance.acquireTokenPopup(loginRequest);
+          return response.accessToken;
+        }
+      } catch (error) {
+        showStatus('Authentication error: ' + error.message, 'error');
+        return null;
+      }
+    }
+    
+    // Upload file to OneDrive using Microsoft Graph REST API
+    async function uploadFileToOneDrive(accessToken, filename, fileContent) {
+      const graphEndpoint = 'https://graph.microsoft.com/v1.0';
+      const folderPath = 'Staff_ToDo_Lists';
+      
+      // Try to upload to folder first, if it fails, upload to root
+      try {
+        const uploadUrl = `${graphEndpoint}/me/drive/root:/${folderPath}/${filename}:/content`;
+        const response = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'text/html'
+          },
+          body: fileContent
+        });
+        
+        if (response.ok) {
+          return { success: true, path: `${folderPath}/${filename}` };
+        } else if (response.status === 404) {
+          // Folder doesn't exist, try root
+          const rootUrl = `${graphEndpoint}/me/drive/root:/${filename}:/content`;
+          const rootResponse = await fetch(rootUrl, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'text/html'
+            },
+            body: fileContent
+          });
+          
+          if (rootResponse.ok) {
+            return { success: true, path: filename };
+          } else {
+            const errorText = await rootResponse.text();
+            throw new Error(`Upload failed: ${rootResponse.status} - ${errorText}`);
+          }
+        } else {
+          const errorText = await response.text();
+          throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+        }
+      } catch (error) {
+        throw error;
+      }
+    }
+    
+    // Generate Staff To-Do List HTML content
+    function generateTodoListHTML() {
+      const patient = document.getElementById('patient-name').value.trim();
+      const dob = formatDate(document.getElementById('dob').value);
+      const dos = formatDate(document.getElementById('dos').value);
+      const follow = document.getElementById('followup').value.trim();
+      const refer = document.getElementById('referto').value.trim();
+      const selected = document.querySelectorAll('input[name="tests"]:checked');
+      
+      if (selected.length === 0) {
+        showStatus('No tests selected. Please select at least one test.', 'error');
+        return null;
+      }
+      
+      let html = `<!DOCTYPE html><html><head><title>Staff To-Do List - ${patient}</title><style>
+        body{font-family:Arial,sans-serif;color:#333;margin:20px;}h1{text-align:center;color:#0066cc;margin-bottom:16px;border-bottom:2px solid #0066cc;padding-bottom:10px;}h2{color:#0066cc;margin:20px 0 12px;}p{margin:12px 0;font-size:14px;}ul{list-style:none;padding:0;margin:8px 0;}li{padding:4px 0;border-bottom:1px solid #eee;font-size:14px;} .todo-list{background:#f5f5f5;border:2px solid #0066cc;border-radius:6px;padding:12px;margin:16px 0;} .todo-item{padding:8px;margin:6px 0;background:#fff;border-left:4px solid #0066cc;border-radius:4px;} .todo-category{font-weight:bold;color:#0066cc;margin-bottom:4px;} .todo-details{font-size:13px;color:#666;margin-top:4px;} .staff-header{background:#0066cc;color:#fff;padding:8px;border-radius:4px 4px 0 0;margin:-12px -12px 12px -12px;font-weight:bold;} .print-date{text-align:right;color:#666;font-size:12px;margin-bottom:10px;}
+      </style></head><body>`;
+      
+      html += `<div class="print-date">Generated: ${new Date().toLocaleString()}</div>`;
+      html += `<h1>STAFF TO-DO LIST - FOLLOW UP REQUIRED</h1>`;
+      html += `<div class="todo-list">`;
+      html += `<div class="staff-header">Patient: ${patient} | DOB: ${dob} | Date: ${dos}</div>`;
+      
+      // Group tests by category
+      const testsByCategory = {};
+      selected.forEach(box => {
+        const category = box.dataset.category;
+        if (!testsByCategory[category]) testsByCategory[category] = [];
+        testsByCategory[category].push(box);
+      });
+      
+      // Generate to-do items
+      Object.entries(testsByCategory).forEach(([category, boxes]) => {
+        boxes.forEach(box => {
+          let taskText = box.value;
+          let details = [];
+          
+          if (category === 'Monitoring Device' && /(MCT|Extended Holter)/.test(box.value)) {
+            const inp = document.querySelector(`input[data-test="${box.value}"]`);
+            if (inp && inp.value) details.push(`${inp.value} days`);
+          }
+          
+          if (category === 'Monitoring Device' && box.value === 'Ambulatory Blood Pressure Monitor') {
+            const selBP = document.querySelector(`select[data-test="${box.value}"]`);
+            if (selBP && selBP.value) details.push(selBP.value);
+          }
+          
+          if (category === 'Procedures') {
+            const sel = document.querySelector(`select[data-test="${box.value}"]`);
+            if (sel && sel.value) details.push(`Location: ${sel.value}`);
+          }
+          
+          if (category === 'Out-of-Office Imaging') {
+            const sel = document.querySelector(`select[data-test="${box.value}"]`);
+            if (sel && sel.value) details.push(`Imaging Center: ${sel.value}`);
+            if (box.value === 'CT (General)') {
+              const inp = document.querySelector(`input[data-test="${box.value}"]`);
+              if (inp && inp.value) details.push(`Details: ${inp.value}`);
+            }
+          }
+          
+          if (box.value === 'Please order labs') {
+            const inp = document.querySelector(`input[data-test="${box.value}"]`);
+            if (inp && inp.value) details.push(`Labs: ${inp.value}`);
+          }
+          
+          html += `<div class="todo-item">`;
+          html += `<div class="todo-category">${category}</div>`;
+          html += `<div class="todo-details"><strong>${taskText}</strong>`;
+          if (details.length > 0) {
+            html += ` - ${details.join(', ')}`;
+          }
+          html += `</div></div>`;
+        });
+      });
+      
+      if (follow) {
+        html += `<div class="todo-item">`;
+        html += `<div class="todo-category">Follow-up</div>`;
+        html += `<div class="todo-details"><strong>Schedule follow-up visit:</strong> ${follow}</div>`;
+        html += `</div>`;
+      }
+      
+      if (refer) {
+        html += `<div class="todo-item">`;
+        html += `<div class="todo-category">Referral</div>`;
+        html += `<div class="todo-details"><strong>Process referral to:</strong> ${refer}</div>`;
+        html += `</div>`;
+      }
+      
+      html += `</div>`;
+      html += `<div style="margin-top:16px;padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:13px;">`;
+      html += `<strong>Note:</strong> Please follow up on all ordered tests and ensure patient receives proper instructions.`;
+      html += `</div></body></html>`;
+      
+      return html;
+    }
+    
+    // Upload to OneDrive
+    async function uploadToOneDrive() {
+      const btn = document.getElementById('onedrive-btn');
+      btn.disabled = true;
+      btn.textContent = 'Uploading...';
+      showStatus('', '');
+      
+      try {
+        // Generate the HTML content
+        const htmlContent = generateTodoListHTML();
+        if (!htmlContent) {
+          btn.disabled = false;
+          btn.textContent = 'Upload Staff To-Do List to OneDrive';
+          return;
+        }
+        
+        // Get access token
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          btn.disabled = false;
+          btn.textContent = 'Upload Staff To-Do List to OneDrive';
+          return;
+        }
+        
+        // Create filename with patient name and date
+        const patient = document.getElementById('patient-name').value.trim().replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const dos = document.getElementById('dos').value.replace(/-/g, '');
+        const filename = `Staff_ToDo_${patient}_${dos}.html`;
+        
+        // Upload to OneDrive
+        const result = await uploadFileToOneDrive(accessToken, filename, htmlContent);
+        if (result.success) {
+          showStatus(`Successfully uploaded to OneDrive: ${result.path}`, 'success');
+        }
+        
+      } catch (error) {
+        console.error('Upload error:', error);
+        showStatus('Upload failed: ' + (error.message || 'Unknown error. Please check your Azure configuration and try again.'), 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Upload Staff To-Do List to OneDrive';
+      }
+    }
+    
+    // Show status message
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById('status-message');
+      if (message) {
+        statusDiv.textContent = message;
+        statusDiv.className = 'status-message status-' + type;
+        statusDiv.style.display = 'block';
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+        }, 5000);
+      } else {
+        statusDiv.style.display = 'none';
+      }
+    }
+    
+    // Toggle instructions visibility
+    function toggleInstructions() {
+      const content = document.getElementById('instructions-content');
+      content.classList.toggle('show');
+    }
+    
+    // Set redirect URI in instructions
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('redirect-uri-display').textContent = window.location.origin;
+    });
+    
+    const TEST_CATEGORIES = {
+      'Stress Tests': ['Exercise treadmill stress test','Lexiscan Nuclear stress test','Exercise Nuclear stress test','Stress Echocardiogram','PET Stress'],
+      'Monitoring Device': ['MCT','Extended Holter','Ambulatory Blood Pressure Monitor','Clinii BP cuff','Clinii Weight Scale','BioBridge Device Monitoring enrollment','In office pacemaker interrogation'],
+      'Office Imaging': ['Echocardiogram','Carotid Ultrasound','Ankle-Brachial Index','Peripheral Arterial Doppler','Abdominal Aortic Aneurysm Screen','Venous Study'],
+      'Out-of-Office Imaging': ['Cardiac CTA','Cardiac CTA w/ FFR','Calcium Score','CTA Carotid','CT Thoracic aorta','Cardiac MRI','PYP Scan','FDG PET','Sleep Study','CT (General)','Other'],
+      'Procedures': ['Left heart Catheterization','Right heart catheterization','TEE','TEE w/ Cardioversion','Cardioversion only','Loop recorder placement','Dobutamine stress echo','Tilt Table Test'],
+      'Obtain Medical Records': ['Obtain Medical Records'],
+      'Blood Pressure Log': ['Blood Pressure Log'],
+      'Labs are printed': ['Labs are printed'],
+      'Please order labs': ['Please order labs'],
+      'Pre Operative Paperwork': ['Send Pre Operative Cardiac risk stratification paperwork'],
+      'Refer for clinical trial': ['Refer for clinical trial']
+    };
+    const HOSPITAL_OPTIONS = ['Houston Methodist','Memorial Hermann','Methodist ASC'];
+    const IMAGING_CENTERS = ['Simon Med','Houston Methodist','Memorial Hermann','Houston Medical Imaging'];
+    const BP_HOURS = ['24 hour','48 hour'];
+
+    function createWrapper(category, test) {
+      const div = document.createElement('div');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox'; checkbox.name = 'tests'; checkbox.value = test; checkbox.dataset.category = category;
+      const label = document.createElement('label'); label.append(checkbox, ` ${test}`);
+      div.appendChild(label);
+
+      if (category === 'Monitoring Device' && /(MCT|Extended Holter)/.test(test)) {
+        const inp = document.createElement('input'); inp.type = 'number'; inp.min = '1'; inp.placeholder = 'Days'; inp.dataset.test = test;
+        div.appendChild(inp);
+      }
+      if (category === 'Monitoring Device' && test === 'Ambulatory Blood Pressure Monitor') {
+        const sel = document.createElement('select'); sel.dataset.test = test;
+        BP_HOURS.forEach(h => { const o = document.createElement('option'); o.value = h; o.textContent = h; sel.appendChild(o); });
+        div.appendChild(sel);
+      }
+      if (category === 'Out-of-Office Imaging') {
+        if (test === 'CT (General)') {
+          const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'CT details'; inp.dataset.test = test; div.appendChild(inp);
+        }
+        if (test === 'Other') {
+          const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Specify imaging'; inp.dataset.test = test; div.appendChild(inp);
+        }
+        const sel = document.createElement('select'); sel.dataset.test = test;
+        IMAGING_CENTERS.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+        div.appendChild(sel);
+      }
+      if (category === 'Procedures') {
+        const sel = document.createElement('select'); sel.dataset.test = test;
+        HOSPITAL_OPTIONS.forEach(h => { const o = document.createElement('option'); o.value = h; o.textContent = h; sel.appendChild(o); });
+        div.appendChild(sel);
+      }
+      if (category === 'Please order labs') {
+        const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Specify labs...'; inp.dataset.test = test; div.appendChild(inp);
+      }
+      if (category === 'Refer for clinical trial') {
+        const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Trial name'; inp.dataset.test = test; div.appendChild(inp);
+      }
+      return div;
+    }
+
+    (function renderCategories() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      document.getElementById('dos').value = `${year}-${month}-${day}`;
+      const categoriesDiv = document.getElementById('categories');
+      const standalone = ['Obtain Medical Records','Blood Pressure Log','Labs are printed','Please order labs','Pre Operative Paperwork','Refer for clinical trial'];
+      Object.entries(TEST_CATEGORIES).forEach(([category, tests]) => {
+        if (standalone.includes(category)) {
+          tests.forEach(test => categoriesDiv.appendChild(createWrapper(category, test)));
+        } else {
+          const fs = document.createElement('fieldset');
+          const lg = document.createElement('legend'); lg.textContent = category;
+          fs.appendChild(lg);
+          tests.forEach(test => fs.appendChild(createWrapper(category, test)));
+          categoriesDiv.appendChild(fs);
+        }
+      });
+    })();
+
+    function formatDate(val) {
+      if (!val) return '';
+      const parts = val.split('-');
+      const y = parts[0], m = parts[1].replace(/^0/, ''), d = parts[2].replace(/^0/, '');
+      return `${m}/${d}/${y}`;
+    }
+
+    document.getElementById('order-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const patient = document.getElementById('patient-name').value.trim();
+      const dob = formatDate(document.getElementById('dob').value);
+      const dos = formatDate(document.getElementById('dos').value);
+      const follow = document.getElementById('followup').value.trim();
+      const refer = document.getElementById('referto').value.trim();
+      const instruct = document.getElementById('instructions').value.trim();
+      const selected = document.querySelectorAll('input[name="tests"]:checked');
+      const pw = window.open('', '_blank');
+      let html = `<!DOCTYPE html><html><head><title>After Visit Summary</title><style>
+        body{font-family:Arial,sans-serif;color:#333;margin:10px;}h1{text-align:center;color:#c00;margin-bottom:16px;}h2{text-align:center;color:#0066cc;margin:20px 0 12px;border-top:2px solid #0066cc;padding-top:12px;}p{margin:12px 0;font-size:14px;}ul{list-style:none;padding:0;margin:8px 0;}li{padding:4px 0;border-bottom:1px solid #eee;font-size:14px;} .section-title{font-weight:bold;margin:12px 0 4px;} .signature{margin-top:16px;border-top:1px solid #ccc;padding-top:8px;font-size:12px;color:#555;text-align:center;}.signature a{color:#c00;text-decoration:none;} .todo-list{background:#f5f5f5;border:2px solid #0066cc;border-radius:6px;padding:12px;margin:16px 0;} .todo-item{padding:8px;margin:6px 0;background:#fff;border-left:4px solid #0066cc;border-radius:4px;display:flex;align-items:flex-start;} .todo-item input[type="checkbox"]{margin-right:10px;margin-top:2px;width:18px;height:18px;cursor:pointer;} .todo-item label{flex:1;cursor:pointer;} .todo-category{font-weight:bold;color:#0066cc;margin-bottom:4px;} .todo-details{font-size:13px;color:#666;margin-left:28px;} .staff-header{background:#0066cc;color:#fff;padding:8px;border-radius:4px 4px 0 0;margin:-12px -12px 12px -12px;font-weight:bold;} .logo-container{text-align:center;margin:20px 0;}
+      </style></head><body class="output">`;
+      
+      // Generate patient copies (2 copies)
+      for (let copy = 0; copy < 2; copy++) {
+        html += `<h1>After Visit Summary</h1><p>Thank you for visiting West Houston Heart Center and trusting us with your care. Here is a summary of your visit.</p>`;
+        html += `<p><strong>Patient:</strong> ${patient}</p><p><strong>DOB:</strong> ${dob}</p><p><strong>Date of Service:</strong> ${dos}</p>`;
+        html += `<p class="section-title">Ordered Tests:</p><ul>`;
+        selected.forEach(box => {
+          let text;
+          // Handle items where category and value are the same (standalone items with input)
+          if (box.value === 'Refer for clinical trial') {
+            const inp = document.querySelector(`input[data-test="${box.value}"]`);
+            text = `Refer for clinical trial${inp && inp.value ? ': ' + inp.value : ''}`;
+          } else if (box.value === 'Please order labs') {
+            const inp = document.querySelector(`input[data-test="${box.value}"]`);
+            text = `Please order labs${inp && inp.value ? ': ' + inp.value : ''}`;
+          } else {
+            text = `${box.dataset.category}: ${box.value}`;
+            // Include days for MCT/Extended Holter
+            if (box.dataset.category === 'Monitoring Device' && /(MCT|Extended Holter)/.test(box.value)) {
+              const inp = document.querySelector(`input[data-test="${box.value}"]`);
+              if (inp && inp.value) text += ` (${inp.value} days)`;
+            }
+            // Include duration for Ambulatory BP monitor
+            if (box.dataset.category === 'Monitoring Device' && box.value === 'Ambulatory Blood Pressure Monitor') {
+              const selBP = document.querySelector(`select[data-test="${box.value}"]`);
+              if (selBP && selBP.value) text += ` (${selBP.value})`;
+            }
+            if (box.dataset.category === 'Procedures') {
+              const sel = document.querySelector(`select[data-test="${box.value}"]`);
+              if (sel) text += ` at ${sel.value}`;
+            }
+            if (box.dataset.category === 'Out-of-Office Imaging') {
+              if (box.value === 'Other') {
+                const inp = document.querySelector(`input[data-test="${box.value}"]`);
+                if (inp && inp.value) text += `: ${inp.value}`;
+              }
+              if (box.value === 'CT (General)') {
+                const inp = document.querySelector(`input[data-test="${box.value}"]`);
+                if (inp && inp.value) text += `: ${inp.value}`;
+              }
+              const sel = document.querySelector(`select[data-test="${box.value}"]`);
+              if (sel) text += ` from ${sel.value}`;
+            }
+          }
+          html += `<li>${text}</li>`;
+        });
+        html += `</ul>`;
+        if (follow) html += `<p><strong>Follow up in:</strong> ${follow}</p>`;
+        if (refer) html += `<p><strong>Refer to:</strong> ${refer}</p>`;
+        if (instruct) html += `<p><strong>Instructions:</strong> ${instruct}</p>`;
+        html += `<div class="signature"><p>Dr. Humayun Naqvi, MD, MBA, FACC<br>West Houston Heart Center<br>Phone: 832-271-5897 | Fax: 1 (877) 669-0063<br><a href="https://www.htxheart.com">www.htxheart.com</a></p></div>`;
+        if (copy === 0) html += `<div style="page-break-after: always;"></div>`;
+      }
+      
+      // Generate Staff To-Do List
+      if (selected.length > 0) {
+        html += `<div style="page-break-after: always;"></div>`;
+        html += `<h2>STAFF TO-DO LIST - FOLLOW UP REQUIRED</h2>`;
+        html += `<div class="todo-list">`;
+        html += `<div class="staff-header">Patient: ${patient} | DOB: ${dob} | Date: ${dos}</div>`;
+        
+        // Group tests by category for better organization
+        const testsByCategory = {};
+        selected.forEach(box => {
+          const category = box.dataset.category;
+          if (!testsByCategory[category]) testsByCategory[category] = [];
+          testsByCategory[category].push(box);
+        });
+        
+        // Generate to-do items
+        Object.entries(testsByCategory).forEach(([category, boxes]) => {
+          boxes.forEach(box => {
+            let taskText = box.value;
+            let details = [];
+            
+            // Include days for MCT/Extended Holter
+            if (category === 'Monitoring Device' && /(MCT|Extended Holter)/.test(box.value)) {
+              const inp = document.querySelector(`input[data-test="${box.value}"]`);
+              if (inp && inp.value) details.push(`${inp.value} days`);
+            }
+            
+            // Include duration for Ambulatory BP monitor
+            if (category === 'Monitoring Device' && box.value === 'Ambulatory Blood Pressure Monitor') {
+              const selBP = document.querySelector(`select[data-test="${box.value}"]`);
+              if (selBP && selBP.value) details.push(selBP.value);
+            }
+            
+            // Include location for Procedures
+            if (category === 'Procedures') {
+              const sel = document.querySelector(`select[data-test="${box.value}"]`);
+              if (sel && sel.value) details.push(`Location: ${sel.value}`);
+            }
+            
+            // Include imaging center for Out-of-Office Imaging
+            if (category === 'Out-of-Office Imaging') {
+              const sel = document.querySelector(`select[data-test="${box.value}"]`);
+              if (sel && sel.value) details.push(`Imaging Center: ${sel.value}`);
+              if (box.value === 'CT (General)') {
+                const inp = document.querySelector(`input[data-test="${box.value}"]`);
+                if (inp && inp.value) details.push(`Details: ${inp.value}`);
+              }
+              if (box.value === 'Other') {
+                const inp = document.querySelector(`input[data-test="${box.value}"]`);
+                if (inp && inp.value) details.push(`Imaging: ${inp.value}`);
+              }
+            }
+            
+            // Include lab details
+            if (box.value === 'Please order labs') {
+              const inp = document.querySelector(`input[data-test="${box.value}"]`);
+              if (inp && inp.value) details.push(`Labs: ${inp.value}`);
+            }
+            
+            // Include clinical trial details
+            if (box.value === 'Refer for clinical trial') {
+              const inp = document.querySelector(`input[data-test="${box.value}"]`);
+              if (inp && inp.value) details.push(`Trial: ${inp.value}`);
+            }
+            
+            html += `<div class="todo-item">`;
+            html += `<input type="checkbox" id="todo-${category}-${boxes.indexOf(box)}">`;
+            html += `<label for="todo-${category}-${boxes.indexOf(box)}">`;
+            html += `<div class="todo-category">${category}</div>`;
+            html += `<div class="todo-details"><strong>${taskText}</strong>`;
+            if (details.length > 0) {
+              html += ` - ${details.join(', ')}`;
+            }
+            html += `</div></label></div>`;
+          });
+        });
+        
+        // Add follow-up and referral reminders if applicable
+        if (follow) {
+          html += `<div class="todo-item">`;
+          html += `<input type="checkbox" id="todo-followup">`;
+          html += `<label for="todo-followup">`;
+          html += `<div class="todo-category">Follow-up</div>`;
+          html += `<div class="todo-details"><strong>Schedule follow-up visit:</strong> ${follow}</div>`;
+          html += `</label></div>`;
+        }
+        
+        if (refer) {
+          html += `<div class="todo-item">`;
+          html += `<input type="checkbox" id="todo-referral">`;
+          html += `<label for="todo-referral">`;
+          html += `<div class="todo-category">Referral</div>`;
+          html += `<div class="todo-details"><strong>Process referral to:</strong> ${refer}</div>`;
+          html += `</label></div>`;
+        }
+        
+        html += `</div>`;
+        html += `<div style="margin-top:16px;padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:13px;">`;
+        html += `<strong>Note:</strong> Please check off items as they are completed. Follow up on all ordered tests and ensure patient receives proper instructions.`;
+        html += `</div>`;
+      }
+      
+      html += `</body></html>`;
+      pw.document.write(html);
+      pw.document.close(); pw.focus(); pw.print();
+    });
+  </script>
+</body>
+</html>
