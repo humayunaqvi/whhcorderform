@@ -396,6 +396,10 @@
       if (task) {
         task.completed = completed;
         localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+        
+        // Update the display without reloading
+        const dateStr = document.getElementById('task-date-filter').value;
+        displayTasks(dateStr);
       }
     }
     
@@ -440,9 +444,9 @@
         html += `<div class="task-card">`;
         html += `<div class="task-header">Patient: ${patientName} | Date of Service: ${formatDate(dateStr)}</div>`;
         
-        patientTasks.forEach(task => {
+        patientTasks.forEach((task, index) => {
           html += `<div class="task-item ${task.completed ? 'completed' : ''}">`;
-          html += `<input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${task.id}', this.checked); location.reload();">`;
+          html += `<input type="checkbox" id="task-${task.id}-${index}" data-task-id="${task.id}" ${task.completed ? 'checked' : ''}>`;
           html += `<div style="flex: 1;">`;
           html += `<div class="task-category">${task.category}</div>`;
           html += `<div class="task-details"><strong>${task.taskText}</strong>`;
@@ -458,6 +462,15 @@
       });
       
       container.innerHTML = html;
+      
+      // Add event listeners to all checkboxes using event delegation
+      container.addEventListener('change', function(e) {
+        if (e.target.type === 'checkbox' && e.target.hasAttribute('data-task-id')) {
+          const taskId = e.target.getAttribute('data-task-id');
+          const completed = e.target.checked;
+          toggleTaskCompletion(taskId, completed);
+        }
+      });
     }
     
     // Print/Save all tasks for the selected date
