@@ -101,6 +101,8 @@
     <h1>Staff Task Dashboard</h1>
     <div class="date-filter">
       <label>View tasks for date: <input type="date" id="task-date-filter"></label>
+      <button class="print-btn" onclick="printAllTasks()" style="margin-left: 15px; padding: 8px 20px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Print/Save All Tasks as PDF</button>
+      <button class="download-btn" onclick="downloadAllTasks()" style="margin-left: 10px; padding: 8px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Download as HTML File</button>
     </div>
     <div id="tasks-container"></div>
   </div>
@@ -115,11 +117,21 @@
     function initUsers() {
       if (!localStorage.getItem(USERS_KEY)) {
         const defaultUsers = {
-          'admin': { password: 'admin123', role: 'admin' },
+          'hnaqvi': { password: 'Whhc1140!!', role: 'admin' },
           'staff1': { password: 'staff123', role: 'staff' },
           'staff2': { password: 'staff123', role: 'staff' }
         };
         localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers));
+      } else {
+        // Update existing admin credentials if they exist
+        const users = JSON.parse(localStorage.getItem(USERS_KEY));
+        // Remove old admin user if it exists
+        if (users['admin']) {
+          delete users['admin'];
+        }
+        // Add or update hnaqvi admin user
+        users['hnaqvi'] = { password: 'Whhc1140!!', role: 'admin' };
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
       }
     }
     
@@ -299,6 +311,194 @@
       });
       
       container.innerHTML = html;
+    }
+    
+    // Print/Save all tasks for the selected date
+    function printAllTasks() {
+      const dateStr = document.getElementById('task-date-filter').value;
+      const tasks = getTasksForDate(dateStr);
+      
+      if (tasks.length === 0) {
+        alert('No tasks found for this date.');
+        return;
+      }
+      
+      // Group tasks by patient
+      const tasksByPatient = {};
+      tasks.forEach(task => {
+        if (!tasksByPatient[task.patientName]) {
+          tasksByPatient[task.patientName] = [];
+        }
+        tasksByPatient[task.patientName].push(task);
+      });
+      
+      // Generate print-ready HTML
+      const pw = window.open('', '_blank');
+      let html = `<!DOCTYPE html><html><head><title>Staff To-Do List - ${formatDate(dateStr)}</title><style>
+        body{font-family:Arial,sans-serif;color:#333;margin:20px;font-size:12px;}
+        h1{text-align:center;color:#0066cc;margin-bottom:20px;border-bottom:3px solid #0066cc;padding-bottom:10px;font-size:20px;}
+        h2{color:#0066cc;margin:20px 0 10px;font-size:16px;border-bottom:2px solid #0066cc;padding-bottom:5px;}
+        .task-card{background:#f5f5f5;border:2px solid #0066cc;border-radius:6px;padding:15px;margin-bottom:20px;page-break-inside:avoid;}
+        .task-header{background:#0066cc;color:#fff;padding:10px;border-radius:4px 4px 0 0;margin:-15px -15px 15px -15px;font-weight:bold;font-size:13px;}
+        .task-item{padding:8px;margin:5px 0;background:white;border-left:4px solid #0066cc;border-radius:4px;page-break-inside:avoid;}
+        .task-category{font-weight:bold;color:#0066cc;margin-bottom:3px;font-size:12px;}
+        .task-details{font-size:11px;color:#666;margin-left:20px;}
+        .task-item.completed{opacity:0.6;text-decoration:line-through;}
+        .summary{background:#e8f4f8;padding:15px;border-radius:6px;margin-bottom:20px;border-left:5px solid #0066cc;}
+        .summary-item{margin:5px 0;font-size:12px;}
+        @media print{
+          .task-card{page-break-inside:avoid;}
+          .task-item{page-break-inside:avoid;}
+          body{margin:10px;}
+        }
+      </style></head><body>`;
+      
+      html += `<h1>Staff To-Do List - ${formatDate(dateStr)}</h1>`;
+      
+      // Add summary
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter(t => t.completed).length;
+      const pendingTasks = totalTasks - completedTasks;
+      
+      html += `<div class="summary">`;
+      html += `<div class="summary-item"><strong>Total Tasks:</strong> ${totalTasks}</div>`;
+      html += `<div class="summary-item"><strong>Completed:</strong> ${completedTasks}</div>`;
+      html += `<div class="summary-item"><strong>Pending:</strong> ${pendingTasks}</div>`;
+      html += `<div class="summary-item"><strong>Date:</strong> ${formatDate(dateStr)}</div>`;
+      html += `<div class="summary-item"><strong>Generated:</strong> ${new Date().toLocaleString()}</div>`;
+      html += `</div>`;
+      
+      // Add tasks grouped by patient
+      Object.entries(tasksByPatient).forEach(([patientName, patientTasks]) => {
+        html += `<div class="task-card">`;
+        html += `<div class="task-header">Patient: ${patientName} | Date of Service: ${formatDate(dateStr)}</div>`;
+        
+        patientTasks.forEach(task => {
+          html += `<div class="task-item ${task.completed ? 'completed' : ''}">`;
+          html += `<div class="task-category">${task.category}</div>`;
+          html += `<div class="task-details"><strong>${task.taskText}</strong>`;
+          if (task.details && task.details.length > 0) {
+            html += ` - ${task.details.join(', ')}`;
+          }
+          html += ` ${task.completed ? '✓ COMPLETED' : '☐ PENDING'}`;
+          html += `</div>`;
+          html += `</div>`;
+        });
+        
+        html += `</div>`;
+      });
+      
+      html += `<div style="margin-top:30px;padding:15px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:12px;text-align:center;">`;
+      html += `<strong>West Houston Heart Center</strong><br>`;
+      html += `Dr. Humayun Naqvi, MD, MBA, FACC<br>`;
+      html += `Phone: 832-271-5897 | Fax: 1 (877) 669-0063<br>`;
+      html += `<a href="https://www.htxheart.com" style="color:#c00;">www.htxheart.com</a>`;
+      html += `</div>`;
+      
+      html += `</body></html>`;
+      pw.document.write(html);
+      pw.document.close();
+      
+      // Wait a moment for content to load, then trigger print
+      setTimeout(() => {
+        pw.focus();
+        pw.print();
+      }, 250);
+    }
+    
+    // Download all tasks as HTML file
+    function downloadAllTasks() {
+      const dateStr = document.getElementById('task-date-filter').value;
+      const tasks = getTasksForDate(dateStr);
+      
+      if (tasks.length === 0) {
+        alert('No tasks found for this date.');
+        return;
+      }
+      
+      // Group tasks by patient
+      const tasksByPatient = {};
+      tasks.forEach(task => {
+        if (!tasksByPatient[task.patientName]) {
+          tasksByPatient[task.patientName] = [];
+        }
+        tasksByPatient[task.patientName].push(task);
+      });
+      
+      // Generate HTML content
+      let html = `<!DOCTYPE html><html><head><title>Staff To-Do List - ${formatDate(dateStr)}</title><style>
+        body{font-family:Arial,sans-serif;color:#333;margin:20px;font-size:12px;}
+        h1{text-align:center;color:#0066cc;margin-bottom:20px;border-bottom:3px solid #0066cc;padding-bottom:10px;font-size:20px;}
+        h2{color:#0066cc;margin:20px 0 10px;font-size:16px;border-bottom:2px solid #0066cc;padding-bottom:5px;}
+        .task-card{background:#f5f5f5;border:2px solid #0066cc;border-radius:6px;padding:15px;margin-bottom:20px;page-break-inside:avoid;}
+        .task-header{background:#0066cc;color:#fff;padding:10px;border-radius:4px 4px 0 0;margin:-15px -15px 15px -15px;font-weight:bold;font-size:13px;}
+        .task-item{padding:8px;margin:5px 0;background:white;border-left:4px solid #0066cc;border-radius:4px;page-break-inside:avoid;}
+        .task-category{font-weight:bold;color:#0066cc;margin-bottom:3px;font-size:12px;}
+        .task-details{font-size:11px;color:#666;margin-left:20px;}
+        .task-item.completed{opacity:0.6;text-decoration:line-through;}
+        .summary{background:#e8f4f8;padding:15px;border-radius:6px;margin-bottom:20px;border-left:5px solid #0066cc;}
+        .summary-item{margin:5px 0;font-size:12px;}
+        @media print{
+          .task-card{page-break-inside:avoid;}
+          .task-item{page-break-inside:avoid;}
+          body{margin:10px;}
+        }
+      </style></head><body>`;
+      
+      html += `<h1>Staff To-Do List - ${formatDate(dateStr)}</h1>`;
+      
+      // Add summary
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter(t => t.completed).length;
+      const pendingTasks = totalTasks - completedTasks;
+      
+      html += `<div class="summary">`;
+      html += `<div class="summary-item"><strong>Total Tasks:</strong> ${totalTasks}</div>`;
+      html += `<div class="summary-item"><strong>Completed:</strong> ${completedTasks}</div>`;
+      html += `<div class="summary-item"><strong>Pending:</strong> ${pendingTasks}</div>`;
+      html += `<div class="summary-item"><strong>Date:</strong> ${formatDate(dateStr)}</div>`;
+      html += `<div class="summary-item"><strong>Generated:</strong> ${new Date().toLocaleString()}</div>`;
+      html += `</div>`;
+      
+      // Add tasks grouped by patient
+      Object.entries(tasksByPatient).forEach(([patientName, patientTasks]) => {
+        html += `<div class="task-card">`;
+        html += `<div class="task-header">Patient: ${patientName} | Date of Service: ${formatDate(dateStr)}</div>`;
+        
+        patientTasks.forEach(task => {
+          html += `<div class="task-item ${task.completed ? 'completed' : ''}">`;
+          html += `<div class="task-category">${task.category}</div>`;
+          html += `<div class="task-details"><strong>${task.taskText}</strong>`;
+          if (task.details && task.details.length > 0) {
+            html += ` - ${task.details.join(', ')}`;
+          }
+          html += ` ${task.completed ? '✓ COMPLETED' : '☐ PENDING'}`;
+          html += `</div>`;
+          html += `</div>`;
+        });
+        
+        html += `</div>`;
+      });
+      
+      html += `<div style="margin-top:30px;padding:15px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:12px;text-align:center;">`;
+      html += `<strong>West Houston Heart Center</strong><br>`;
+      html += `Dr. Humayun Naqvi, MD, MBA, FACC<br>`;
+      html += `Phone: 832-271-5897 | Fax: 1 (877) 669-0063<br>`;
+      html += `<a href="https://www.htxheart.com" style="color:#c00;">www.htxheart.com</a>`;
+      html += `</div>`;
+      
+      html += `</body></html>`;
+      
+      // Create download link
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Staff_Tasks_${dateStr.replace(/-/g, '_')}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
     
     // Format date helper
