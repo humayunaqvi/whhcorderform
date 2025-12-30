@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>West Houston Heart Center - Order System</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 10px; color: #333; background: #f5f5f5; }
+    
+    /* Login Page Styles */
+    #login-page { max-width: 400px; margin: 50px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    #login-page h1 { text-align: center; color: #c00; margin-bottom: 20px; }
+    #login-page label { display: block; margin: 15px 0 5px; font-weight: bold; }
+    #login-page input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    #login-page button { width: 100%; padding: 12px; background: #c00; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+    #login-page button:hover { background: #a00; }
+    .login-error { color: #c00; margin-top: 10px; text-align: center; display: none; }
+    
+    /* Admin Form Styles */
+    #admin-view { display: none; max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    #admin-view h1 { text-align: center; color: #c00; margin-bottom: 10px; }
+    .logout-btn { float: right; padding: 8px 15px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px; }
+    .logout-btn:hover { background: #555; }
+    form { margin-top: 20px; }
+    label { display: flex; align-items: center; margin: 6px 0; }
+    label > input, label > textarea, label > select { margin-left: 8px; flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+    label > input[type="checkbox"] { margin-left: 0; margin-right: 8px; flex: 0 0 auto; width: auto; }
+    #categories fieldset { margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    #categories div { display: flex; align-items: center; margin: 6px 0; }
+    #categories div input[type="checkbox"] { margin-right: 8px; }
+    #categories div input[type="number"],
+    #categories div select,
+    #categories div input[type="text"] { margin-left: auto; width: 100px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+    button[type="submit"] { width: 100%; padding: 10px; background: #c00; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+    button[type="submit"]:hover { background: #a00; }
+    .status-message { margin-top: 10px; padding: 8px; border-radius: 4px; font-size: 14px; display: none; }
+    .status-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .status-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    
+    /* Staff Dashboard Styles */
+    #staff-view { display: none; max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    #staff-view h1 { text-align: center; color: #0066cc; margin-bottom: 20px; }
+    .date-filter { text-align: center; margin-bottom: 20px; }
+    .date-filter input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    .task-card { background: #f5f5f5; border: 2px solid #0066cc; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
+    .task-header { background: #0066cc; color: #fff; padding: 10px; border-radius: 4px 4px 0 0; margin: -15px -15px 10px -15px; font-weight: bold; }
+    .task-item { padding: 8px; margin: 5px 0; background: white; border-left: 4px solid #0066cc; border-radius: 4px; display: flex; align-items: flex-start; }
+    .task-item input[type="checkbox"] { margin-right: 10px; margin-top: 3px; width: 18px; height: 18px; cursor: pointer; }
+    .task-item.completed { opacity: 0.6; text-decoration: line-through; }
+    .task-category { font-weight: bold; color: #0066cc; margin-bottom: 3px; font-size: 13px; }
+    .task-details { font-size: 12px; color: #666; margin-left: 28px; }
+    .no-tasks { text-align: center; padding: 40px; color: #666; font-size: 16px; }
+    
+    @media (max-width: 600px) {
+      label { flex-direction: column; align-items: flex-start; }
+      label > input, label > textarea, label > select { margin-left: 0; width: 100%; }
+      #categories div { flex-direction: column; align-items: flex-start; }
+      #categories div input[type="number"], #categories div select, #categories div input[type="text"] { margin: 6px 0 0 24px; width: calc(100% - 24px); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Page -->
+  <div id="login-page">
+    <h1>West Houston Heart Center</h1>
+    <h2 style="text-align: center; font-size: 18px; margin-bottom: 20px;">Order System</h2>
+    <form id="login-form">
+      <label>Username:</label>
+      <input type="text" id="username" required autocomplete="username">
+      <label>Password:</label>
+      <input type="password" id="password" required autocomplete="current-password">
+      <button type="submit">Login</button>
+      <div class="login-error" id="login-error">Invalid username or password</div>
+    </form>
+  </div>
+
+  <!-- Admin View (Order Form) -->
+  <div id="admin-view">
+    <button class="logout-btn" onclick="logout()">Logout</button>
+    <h1>Clinic Visit - Order Form</h1>
+    <form id="order-form">
+      <label>Patient Name:<input type="text" id="patient-name" required></label>
+      <label>Date of Service:<input type="date" id="dos" readonly></label>
+      <div id="categories"></div>
+      <label>Follow-up visit:<input type="text" id="followup" placeholder="e.g., 2 weeks"></label>
+      <label>Refer to:<input type="text" id="referto" placeholder="Doctor name & specialty"></label>
+      <label><input type="checkbox" id="pcp"> Update PCP information</label>
+      <label><input type="checkbox" id="mediterranean-diet"> Give Mediterranean Diet Info</label>
+      <label><input type="checkbox" id="exercise-regimen"> Give Exercise Regimen Info</label>
+      <label>Instructions for Patient:<textarea id="instructions" rows="4" placeholder="Enter any additional instructions..."></textarea></label>
+      <button type="submit">Generate Print Page & Save Task</button>
+    </form>
+    <div class="status-message" id="status-message"></div>
+  </div>
+
+  <!-- Staff View (Task Dashboard) -->
+  <div id="staff-view">
+    <button class="logout-btn" onclick="logout()">Logout</button>
+    <h1>Staff Task Dashboard</h1>
+    <div class="date-filter">
+      <label>View tasks for date: <input type="date" id="task-date-filter"></label>
+    </div>
+    <div id="tasks-container"></div>
+  </div>
+
+  <script>
+    // Authentication and User Management
+    const USERS_KEY = 'whhc_users';
+    const TASKS_KEY = 'whhc_tasks';
+    const SESSION_KEY = 'whhc_session';
+    
+    // Initialize default admin user if not exists
+    function initUsers() {
+      if (!localStorage.getItem(USERS_KEY)) {
+        const defaultUsers = {
+          'admin': { password: 'admin123', role: 'admin' },
+          'staff1': { password: 'staff123', role: 'staff' },
+          'staff2': { password: 'staff123', role: 'staff' }
+        };
+        localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers));
+      }
+    }
+    
+    // Simple password hash (for basic security - not production-grade)
+    function hashPassword(pwd) {
+      let hash = 0;
+      for (let i = 0; i < pwd.length; i++) {
+        const char = pwd.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return hash.toString();
+    }
+    
+    // Login function
+    function login(username, password) {
+      const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+      const user = users[username];
+      
+      if (user && user.password === password) {
+        const session = { username, role: user.role, timestamp: Date.now() };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        return true;
+      }
+      return false;
+    }
+    
+    // Check if user is logged in
+    function checkSession() {
+      const sessionStr = localStorage.getItem(SESSION_KEY);
+      if (!sessionStr) return null;
+      
+      const session = JSON.parse(sessionStr);
+      // Session expires after 8 hours
+      if (Date.now() - session.timestamp > 8 * 60 * 60 * 1000) {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      return session;
+    }
+    
+    // Logout function
+    function logout() {
+      localStorage.removeItem(SESSION_KEY);
+      showLoginPage();
+    }
+    
+    // Show appropriate view based on role
+    function showView() {
+      const session = checkSession();
+      if (!session) {
+        showLoginPage();
+        return;
+      }
+      
+      document.getElementById('login-page').style.display = 'none';
+      
+      if (session.role === 'admin') {
+        document.getElementById('admin-view').style.display = 'block';
+        document.getElementById('staff-view').style.display = 'none';
+        initAdminForm();
+      } else {
+        document.getElementById('admin-view').style.display = 'none';
+        document.getElementById('staff-view').style.display = 'block';
+        initStaffDashboard();
+      }
+    }
+    
+    function showLoginPage() {
+      document.getElementById('login-page').style.display = 'block';
+      document.getElementById('admin-view').style.display = 'none';
+      document.getElementById('staff-view').style.display = 'none';
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+    }
+    
+    // Login form handler
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('login-error');
+      
+      if (login(username, password)) {
+        errorDiv.style.display = 'none';
+        showView();
+      } else {
+        errorDiv.style.display = 'block';
+      }
+    });
+    
+    // Save task to localStorage
+    function saveTask(taskData) {
+      const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+      const task = {
+        id: Date.now().toString(),
+        ...taskData,
+        createdAt: new Date().toISOString(),
+        completed: false
+      };
+      tasks.push(task);
+      localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+    }
+    
+    // Get tasks for a specific date
+    function getTasksForDate(dateStr) {
+      const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+      return tasks.filter(task => task.dateOfService === dateStr);
+    }
+    
+    // Update task completion status
+    function toggleTaskCompletion(taskId, completed) {
+      const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = completed;
+        localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+      }
+    }
+    
+    // Initialize staff dashboard
+    function initStaffDashboard() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
+      
+      const dateFilter = document.getElementById('task-date-filter');
+      dateFilter.value = todayStr;
+      dateFilter.addEventListener('change', () => {
+        displayTasks(dateFilter.value);
+      });
+      
+      displayTasks(todayStr);
+    }
+    
+    // Display tasks for a date
+    function displayTasks(dateStr) {
+      const tasks = getTasksForDate(dateStr);
+      const container = document.getElementById('tasks-container');
+      
+      if (tasks.length === 0) {
+        container.innerHTML = '<div class="no-tasks">No tasks found for this date.</div>';
+        return;
+      }
+      
+      // Group tasks by patient
+      const tasksByPatient = {};
+      tasks.forEach(task => {
+        if (!tasksByPatient[task.patientName]) {
+          tasksByPatient[task.patientName] = [];
+        }
+        tasksByPatient[task.patientName].push(task);
+      });
+      
+      let html = '';
+      Object.entries(tasksByPatient).forEach(([patientName, patientTasks]) => {
+        html += `<div class="task-card">`;
+        html += `<div class="task-header">Patient: ${patientName} | Date of Service: ${formatDate(dateStr)}</div>`;
+        
+        patientTasks.forEach(task => {
+          html += `<div class="task-item ${task.completed ? 'completed' : ''}">`;
+          html += `<input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${task.id}', this.checked); location.reload();">`;
+          html += `<div style="flex: 1;">`;
+          html += `<div class="task-category">${task.category}</div>`;
+          html += `<div class="task-details"><strong>${task.taskText}</strong>`;
+          if (task.details && task.details.length > 0) {
+            html += ` - ${task.details.join(', ')}`;
+          }
+          html += `</div>`;
+          html += `</div>`;
+          html += `</div>`;
+        });
+        
+        html += `</div>`;
+      });
+      
+      container.innerHTML = html;
+    }
+    
+    // Format date helper
+    function formatDate(val) {
+      if (!val) return '';
+      const parts = val.split('-');
+      const y = parts[0], m = parts[1].replace(/^0/, ''), d = parts[2].replace(/^0/, '');
+      return `${m}/${d}/${y}`;
+    }
+    
+    // Patient-friendly test descriptions (same as before)
+    const TEST_DESCRIPTIONS = {
+      'Exercise treadmill stress test': 'This test evaluates how your heart performs during physical activity. You will walk on a treadmill while we monitor your heart rate, blood pressure, and heart rhythm. This helps us assess your heart\'s response to exercise and identify any potential issues.',
+      'Lexiscan Nuclear stress test': 'This test uses a small amount of radioactive tracer to create images of your heart at rest and during stress. You will receive medication to simulate exercise, and we will take pictures of your heart to check blood flow and identify any areas that may not be receiving adequate blood supply.',
+      'Exercise Nuclear stress test': 'Similar to the Lexiscan test, but you will exercise on a treadmill instead of receiving medication. This test uses a radioactive tracer to show how well blood flows to your heart muscle during physical activity.',
+      'Stress Echocardiogram': 'This test combines an ultrasound of your heart with exercise or medication to see how well your heart pumps blood during stress. It helps identify areas of the heart that may not be functioning properly under stress.',
+      'PET Stress': 'This advanced imaging test uses a radioactive tracer to create detailed 3D images of your heart. It provides very accurate information about blood flow to your heart muscle and can detect even small areas of reduced blood supply.',
+      'Mobile Cardiac Telemetry': 'A Mobile Cardiac Telemetry (MCT) device is a small, wearable monitor that continuously records your heart rhythm. You will wear it for the specified number of days, and it automatically sends your heart rhythm data to our monitoring center for review.',
+      'Extended Holter Monitor': 'A Holter monitor is a portable device that continuously records your heart rhythm for an extended period. You will wear electrodes on your chest connected to a small recorder that you carry with you. This helps us identify irregular heart rhythms that may not occur during a brief office visit.',
+      'Ambulatory Blood Pressure Monitor': 'This device automatically measures your blood pressure at regular intervals throughout the day and night while you go about your normal activities. It provides a more complete picture of your blood pressure patterns than single office measurements.',
+      'Clinii Blood Pressure Cuff': 'A home blood pressure monitoring device that connects to our clinic. You will take regular blood pressure readings at home, and the device automatically sends the data to our office so we can track your blood pressure over time.',
+      'Clinii Weight Scale': 'A smart scale that automatically sends your weight measurements to our clinic. This helps us monitor fluid retention and overall health status, which is especially important for heart conditions.',
+      'BioBridge Device Monitoring enrollment': 'This program allows us to remotely monitor your implanted cardiac device (pacemaker, defibrillator, or loop recorder). Your device will automatically send information to our office, so we can check on it regularly without you needing to come in.',
+      'In Office Pacemaker Interrogation': 'During this visit, we will check your pacemaker\'s settings and battery life using a special device. We will also review any stored information about your heart rhythm to ensure your pacemaker is working correctly.',
+      'Echocardiogram': 'An ultrasound of your heart that uses sound waves to create moving pictures of your heart\'s structure and function. It shows how well your heart pumps blood, the condition of your heart valves, and the size of your heart chambers. This is a painless test that takes about 30-45 minutes.',
+      'Carotid Ultrasound': 'This ultrasound test examines the blood vessels in your neck (carotid arteries) that supply blood to your brain. It helps identify any narrowing or blockages that could increase your risk of stroke.',
+      'Ankle-Brachial Index': 'This simple test compares the blood pressure in your ankles to the blood pressure in your arms. It helps detect peripheral artery disease, which is narrowing of arteries in your legs that can cause pain when walking.',
+      'Peripheral Arterial Doppler': 'This ultrasound test examines the blood flow in the arteries of your arms or legs. It helps identify blockages or narrowing that may be causing symptoms like pain, numbness, or poor circulation.',
+      'Abdominal Aortic Aneurysm Screen': 'An ultrasound of your abdomen to check for an enlarged area (aneurysm) in the main blood vessel (aorta) that carries blood from your heart. Early detection is important to prevent serious complications.',
+      'Venous Study': 'An ultrasound test that examines the veins in your legs or arms to check for blood clots (deep vein thrombosis) or problems with vein function. It helps diagnose conditions like varicose veins or blood clots.',
+      'Cardiac CTA': 'A specialized CT scan that creates detailed 3D images of your heart and coronary arteries. It uses contrast dye injected through an IV to visualize the blood vessels and can detect blockages or narrowing. This is a non-invasive alternative to cardiac catheterization.',
+      'Cardiac CTA w/ FFR': 'This advanced cardiac CT scan includes Fractional Flow Reserve analysis, which uses computer modeling to determine if any blockages in your arteries are significant enough to affect blood flow to your heart muscle.',
+      'Cardiac CTA with Cleerly Plaque analysis': 'This specialized cardiac CT scan uses advanced software (Cleerly) to analyze plaque in your coronary arteries. It provides detailed information about the type and amount of plaque, helping assess your risk of heart disease and guide treatment decisions.',
+      'Calcium Score': 'A quick CT scan that measures the amount of calcium in your coronary arteries. Calcium buildup indicates plaque in your arteries. This test helps assess your risk of heart disease even before symptoms develop.',
+      'CTA Carotid': 'A CT scan with contrast dye that creates detailed images of the carotid arteries in your neck. It provides more detailed information than ultrasound and helps evaluate your risk of stroke.',
+      'CT Thoracic aorta': 'A CT scan that examines the portion of the aorta (main artery) in your chest. It helps detect aneurysms, dissections, or other abnormalities in this important blood vessel.',
+      'Cardiac MRI': 'A magnetic resonance imaging test that uses powerful magnets and radio waves to create detailed images of your heart. It provides excellent images of heart structure, function, and can assess heart muscle damage or inflammation. No radiation is used.',
+      'PYP Scan': 'A nuclear medicine test that uses a radioactive tracer to detect a specific type of heart condition called cardiac amyloidosis, where abnormal proteins build up in the heart muscle.',
+      'FDG PET': 'A specialized PET scan that uses a radioactive sugar tracer to identify areas of inflammation or infection in the heart. It helps diagnose conditions like cardiac sarcoidosis or infections of the heart.',
+      'Sleep Study': 'An overnight test that monitors your breathing, heart rate, oxygen levels, and brain activity while you sleep. It helps diagnose sleep apnea, which can contribute to heart problems and high blood pressure.',
+      'Other': 'Additional imaging test as specified by your doctor.',
+      'Left Heart Catheterization': 'A procedure where a thin tube (catheter) is inserted through an artery (usually in your wrist or groin) and guided to your heart. Contrast dye is injected to visualize your coronary arteries and check for blockages. This is the gold standard test for diagnosing coronary artery disease.',
+      'Right Heart Catheterization': 'A procedure where a catheter is inserted through a vein and guided to the right side of your heart and lungs. It measures pressures in your heart and lungs, helping diagnose and manage conditions like heart failure or pulmonary hypertension.',
+      'TEE': 'Transesophageal Echocardiogram - An ultrasound probe is passed through your mouth into your esophagus (food pipe) to get very clear images of your heart from behind. You will receive sedation for comfort. This provides better images than a regular echocardiogram.',
+      'TEE w/ Cardioversion': 'A transesophageal echocardiogram followed by cardioversion, which uses an electrical shock to restore normal heart rhythm. The TEE ensures there are no blood clots in your heart before the procedure.',
+      'Cardioversion only': 'A procedure that uses an electrical shock to restore your heart to a normal rhythm. You will receive sedation so you won\'t feel the shock. This is used to treat certain irregular heart rhythms.',
+      'Loop Recorder Placement': 'A small device is implanted just under the skin of your chest to continuously monitor your heart rhythm for up to 3 years. It helps identify irregular rhythms that occur infrequently. The procedure is quick and done with local anesthesia.',
+      'Dobutamine Stress Echo': 'An echocardiogram performed while you receive medication (dobutamine) that makes your heart work harder, simulating exercise. This is used when you cannot exercise on a treadmill. It helps assess how well your heart functions under stress.',
+      'Tilt Table Test': 'You will lie on a table that tilts to different angles while we monitor your heart rate and blood pressure. This test helps diagnose fainting spells or dizziness that may be related to your heart or nervous system.',
+      'Obtain Medical Records': 'We will request your medical records from other healthcare providers to ensure we have complete information about your medical history.',
+      'Blood Pressure Log': 'You will keep a log of your blood pressure readings at home to help us monitor and manage your blood pressure more effectively.',
+      'Labs are printed': 'Laboratory test orders have been printed for you to take to the lab.',
+      'Please order labs': 'Laboratory tests have been ordered as specified.',
+      'Send Preoperative Cardiac Risk Stratification Paperwork': 'We will send paperwork to help assess your cardiac risk before surgery. This helps ensure your safety during the procedure.',
+      'Refer for Clinical Trial': 'You will be referred to a clinical trial as specified.',
+      'Order Genetic Testing': 'Genetic testing will be ordered to help identify inherited heart conditions or genetic factors that may affect your cardiovascular health. This testing can help guide treatment decisions and provide important information for you and your family members.'
+    };
+    
+    const TEST_CATEGORIES = {
+      'Stress Tests': ['Exercise treadmill stress test','Lexiscan Nuclear stress test','Exercise Nuclear stress test','Stress Echocardiogram','PET Stress'],
+      'Monitoring Device': ['Mobile Cardiac Telemetry','Extended Holter Monitor','Ambulatory Blood Pressure Monitor','Clinii Blood Pressure Cuff','Clinii Weight Scale','BioBridge Device Monitoring enrollment','In Office Pacemaker Interrogation'],
+      'Office Imaging': ['Echocardiogram','Carotid Ultrasound','Ankle-Brachial Index','Peripheral Arterial Doppler','Abdominal Aortic Aneurysm Screen','Venous Study'],
+      'Out-of-Office Imaging': ['Cardiac CTA','Cardiac CTA w/ FFR','Cardiac CTA with Cleerly Plaque analysis','Calcium Score','CTA Carotid','CT Thoracic aorta','Cardiac MRI','PYP Scan','FDG PET','Sleep Study','Other'],
+      'Procedures': ['Left Heart Catheterization','Right Heart Catheterization','TEE','TEE w/ Cardioversion','Cardioversion only','Loop Recorder Placement','Dobutamine Stress Echo','Tilt Table Test'],
+      'Obtain Medical Records': ['Obtain Medical Records'],
+      'Blood Pressure Log': ['Blood Pressure Log'],
+      'Labs are printed': ['Labs are printed'],
+      'Please order labs': ['Please order labs'],
+      'Preoperative Paperwork': ['Send Preoperative Cardiac Risk Stratification Paperwork'],
+      'Refer for Clinical Trial': ['Refer for Clinical Trial'],
+      'Order Genetic Testing': ['Order Genetic Testing']
+    };
+    const HOSPITAL_OPTIONS = ['Houston Methodist','Memorial Hermann','Methodist ASC'];
+    const IMAGING_CENTERS = ['Simon Med','Houston Methodist','Memorial Hermann','Houston Medical Imaging'];
+    const BP_HOURS = ['24 hour','48 hour'];
+
+    function createWrapper(category, test) {
+      const div = document.createElement('div');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox'; checkbox.name = 'tests'; checkbox.value = test; checkbox.dataset.category = category;
+      const label = document.createElement('label'); label.append(checkbox, ` ${test}`);
+      div.appendChild(label);
+
+      if (category === 'Monitoring Device' && /(Mobile Cardiac Telemetry|Extended Holter Monitor)/.test(test)) {
+        const inp = document.createElement('input'); inp.type = 'number'; inp.min = '1'; inp.placeholder = 'Days'; inp.dataset.test = test;
+        div.appendChild(inp);
+      }
+      if (category === 'Monitoring Device' && test === 'Ambulatory Blood Pressure Monitor') {
+        const sel = document.createElement('select'); sel.dataset.test = test;
+        BP_HOURS.forEach(h => { const o = document.createElement('option'); o.value = h; o.textContent = h; sel.appendChild(o); });
+        div.appendChild(sel);
+      }
+      if (category === 'Out-of-Office Imaging') {
+        if (test === 'Other') {
+          const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Specify imaging'; inp.dataset.test = test; div.appendChild(inp);
+        }
+        const sel = document.createElement('select'); sel.dataset.test = test;
+        IMAGING_CENTERS.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+        div.appendChild(sel);
+      }
+      if (category === 'Procedures') {
+        const sel = document.createElement('select'); sel.dataset.test = test;
+        HOSPITAL_OPTIONS.forEach(h => { const o = document.createElement('option'); o.value = h; o.textContent = h; sel.appendChild(o); });
+        div.appendChild(sel);
+      }
+      if (category === 'Please order labs') {
+        const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Specify labs...'; inp.dataset.test = test; div.appendChild(inp);
+      }
+      if (category === 'Refer for Clinical Trial') {
+        const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Trial name'; inp.dataset.test = test; div.appendChild(inp);
+      }
+      return div;
+    }
+
+    function initAdminForm() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      document.getElementById('dos').value = `${year}-${month}-${day}`;
+      const categoriesDiv = document.getElementById('categories');
+      categoriesDiv.innerHTML = '';
+      const standalone = ['Obtain Medical Records','Blood Pressure Log','Labs are printed','Please order labs','Preoperative Paperwork','Refer for Clinical Trial','Order Genetic Testing'];
+      Object.entries(TEST_CATEGORIES).forEach(([category, tests]) => {
+        if (standalone.includes(category)) {
+          tests.forEach(test => categoriesDiv.appendChild(createWrapper(category, test)));
+        } else {
+          const fs = document.createElement('fieldset');
+          const lg = document.createElement('legend'); lg.textContent = category;
+          fs.appendChild(lg);
+          tests.forEach(test => fs.appendChild(createWrapper(category, test)));
+          categoriesDiv.appendChild(fs);
+        }
+      });
+    }
+
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById('status-message');
+      if (message) {
+        statusDiv.textContent = message;
+        statusDiv.className = 'status-message status-' + type;
+        statusDiv.style.display = 'block';
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+        }, 5000);
+      } else {
+        statusDiv.style.display = 'none';
+      }
+    }
+
+    // Form submission handler - saves tasks and generates print output
+    document.getElementById('order-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const patient = document.getElementById('patient-name').value.trim();
+      const dosValue = document.getElementById('dos').value;
+      const dos = formatDate(dosValue);
+      const follow = document.getElementById('followup').value.trim();
+      const refer = document.getElementById('referto').value.trim();
+      const pcp = document.getElementById('pcp').checked;
+      const mediterraneanDiet = document.getElementById('mediterranean-diet').checked;
+      const exerciseRegimen = document.getElementById('exercise-regimen').checked;
+      const instruct = document.getElementById('instructions').value.trim();
+      const selected = document.querySelectorAll('input[name="tests"]:checked');
+      
+      if (selected.length === 0) {
+        showStatus('No tests selected. Please select at least one test.', 'error');
+        return;
+      }
+      
+      // Save tasks to localStorage
+      const tasksByCategory = {};
+      selected.forEach(box => {
+        const category = box.dataset.category;
+        if (!tasksByCategory[category]) tasksByCategory[category] = [];
+        tasksByCategory[category].push(box);
+      });
+      
+      Object.entries(tasksByCategory).forEach(([category, boxes]) => {
+        boxes.forEach(box => {
+          let taskText = box.value;
+          let details = [];
+          
+          if (category === 'Monitoring Device' && /(Mobile Cardiac Telemetry|Extended Holter Monitor)/.test(box.value)) {
+            const inp = document.querySelector(`input[data-test="${box.value}"]`);
+            if (inp && inp.value) details.push(`${inp.value} days`);
+          }
+          
+          if (category === 'Monitoring Device' && box.value === 'Ambulatory Blood Pressure Monitor') {
+            const selBP = document.querySelector(`select[data-test="${box.value}"]`);
+            if (selBP && selBP.value) details.push(selBP.value);
+          }
+          
+          if (category === 'Procedures') {
+            const sel = document.querySelector(`select[data-test="${box.value}"]`);
+            if (sel && sel.value) details.push(`Location: ${sel.value}`);
+          }
+          
+          if (category === 'Out-of-Office Imaging') {
+            const sel = document.querySelector(`select[data-test="${box.value}"]`);
+            if (sel && sel.value) details.push(`Imaging Center: ${sel.value}`);
+            if (box.value === 'Other') {
+              const inp = document.querySelector(`input[data-test="${box.value}"]`);
+              if (inp && inp.value) details.push(`Imaging: ${inp.value}`);
+            }
+          }
+          
+          if (box.value === 'Please order labs') {
+            const inp = document.querySelector(`input[data-test="${box.value}"]`);
+            if (inp && inp.value) details.push(`Labs: ${inp.value}`);
+          }
+          
+          if (box.value === 'Refer for Clinical Trial') {
+            const inp = document.querySelector(`input[data-test="${box.value}"]`);
+            if (inp && inp.value) details.push(`Trial: ${inp.value}`);
+          }
+          
+          saveTask({
+            patientName: patient,
+            dateOfService: dosValue,
+            category: category,
+            taskText: taskText,
+            details: details
+          });
+        });
+      });
+      
+      if (follow) {
+        saveTask({
+          patientName: patient,
+          dateOfService: dosValue,
+          category: 'Follow-up',
+          taskText: `Schedule follow-up visit: ${follow}`,
+          details: []
+        });
+      }
+      
+      if (refer) {
+        saveTask({
+          patientName: patient,
+          dateOfService: dosValue,
+          category: 'Referral',
+          taskText: `Process referral to: ${refer}`,
+          details: []
+        });
+      }
+      
+      if (pcp) {
+        saveTask({
+          patientName: patient,
+          dateOfService: dosValue,
+          category: 'PCP Information',
+          taskText: 'Update PCP information',
+          details: []
+        });
+      }
+      
+      if (mediterraneanDiet) {
+        saveTask({
+          patientName: patient,
+          dateOfService: dosValue,
+          category: 'Patient Education',
+          taskText: 'Give Mediterranean Diet Info handout to patient',
+          details: []
+        });
+      }
+      
+      if (exerciseRegimen) {
+        saveTask({
+          patientName: patient,
+          dateOfService: dosValue,
+          category: 'Patient Education',
+          taskText: 'Give Exercise Regimen Info handout to patient',
+          details: []
+        });
+      }
+      
+      showStatus('Tasks saved successfully! Generating print page...', 'success');
+      
+      // Generate full print output with all tests, descriptions, and handouts
+      const pw = window.open('', '_blank');
+      let html = `<!DOCTYPE html><html><head><title>After Visit Summary</title><style>
+        body{font-family:Arial,sans-serif;color:#333;margin:10px;}h1{text-align:center;color:#c00;margin-bottom:16px;}h2{text-align:center;color:#0066cc;margin:12px 0 8px;border-top:2px solid #0066cc;padding-top:8px;font-size:14px;}p{margin:12px 0;font-size:14px;}ul{list-style:none;padding:0;margin:8px 0;}li{padding:4px 0;border-bottom:1px solid #eee;font-size:14px;} .section-title{font-weight:bold;margin:12px 0 4px;} .signature{margin-top:16px;border-top:1px solid #ccc;padding-top:8px;font-size:12px;color:#555;text-align:center;}.signature a{color:#c00;text-decoration:none;} .todo-list{background:#f5f5f5;border:2px solid #0066cc;border-radius:6px;padding:8px;margin:12px 0;} .todo-item{padding:5px;margin:4px 0;background:#fff;border-left:4px solid #0066cc;border-radius:4px;display:flex;align-items:flex-start;} .todo-item input[type="checkbox"]{margin-right:8px;margin-top:2px;width:16px;height:16px;cursor:pointer;} .todo-item label{flex:1;cursor:pointer;} .todo-category{font-weight:bold;color:#0066cc;margin-bottom:2px;font-size:11px;} .todo-details{font-size:10px;color:#666;margin-left:24px;} .staff-header{background:#0066cc;color:#fff;padding:6px;border-radius:4px 4px 0 0;margin:-8px -8px 8px -8px;font-weight:bold;font-size:11px;} .logo-container{text-align:center;margin:20px 0;}
+        .no-break{page-break-inside:avoid;} .handout-page{page-break-before:always;page-break-after:always;page-break-inside:avoid;}
+        table{page-break-inside:avoid;} thead{display:table-header-group;} tbody{display:table-row-group;} tr{page-break-inside:avoid;page-break-after:auto;}
+        h2,h3{page-break-after:avoid;page-break-inside:avoid;} .content-section{page-break-inside:avoid;} div[style*="background"]{page-break-inside:avoid;}
+        ul,ol{page-break-inside:avoid;} li{page-break-inside:avoid;}
+        @media print{
+          .handout-page{page-break-before:always;page-break-after:always;page-break-inside:avoid !important;}
+          table{page-break-inside:avoid !important;} tr{page-break-inside:avoid !important;page-break-after:auto;}
+          h2,h3{page-break-after:avoid !important;orphans:3;widows:3;}
+          .content-section,div[style*="background"]{page-break-inside:avoid !important;}
+        }
+      </style></head><body class="output">`;
+      
+      // Generate After Visit Summary (1 copy for patient) - keep together
+      html += `<div class="no-break">`;
+      html += `<h1>After Visit Summary</h1>`;
+      html += `<p>Thank you for visiting West Houston Heart Center and trusting us with your care.</p>`;
+      html += `<p style="margin-top:12px;">We have summarized all the tests ordered during your visit along with detailed descriptions to help you understand what each test involves. If you have any questions about your tests, results, or treatment plan, please don't hesitate to message us through the <strong>Healow portal</strong> or call our office directly at <strong>832-271-5897</strong>. We're here to help!</p>`;
+      html += `<p><strong>Patient:</strong> ${patient}</p><p><strong>Date of Service:</strong> ${dos}</p>`;
+      html += `<p class="section-title">Ordered Tests:</p>`;
+      
+      // Group tests by category
+      const testsByCategory = {};
+      selected.forEach(box => {
+        const category = box.dataset.category;
+        if (!testsByCategory[category]) testsByCategory[category] = [];
+        testsByCategory[category].push(box);
+      });
+      
+      // Display tests grouped by category
+      Object.entries(testsByCategory).forEach(([category, boxes]) => {
+        html += `<h3 style="color:#c00;margin-top:15px;margin-bottom:8px;font-size:15px;font-weight:bold;">${category}:</h3>`;
+        html += `<ul>`;
+        boxes.forEach(box => {
+          let text;
+          // Handle items where category and value are the same (standalone items with input)
+          if (box.value === 'Refer for Clinical Trial') {
+            const inp = document.querySelector(`input[data-test="${box.value}"]`);
+            text = `Refer for Clinical Trial${inp && inp.value ? ': ' + inp.value : ''}`;
+          } else if (box.value === 'Please order labs') {
+            const inp = document.querySelector(`input[data-test="${box.value}"]`);
+            text = `Please order labs${inp && inp.value ? ': ' + inp.value : ''}`;
+          } else {
+            text = box.value;
+            // Include days for Mobile Cardiac Telemetry/Extended Holter Monitor
+            if (box.dataset.category === 'Monitoring Device' && /(Mobile Cardiac Telemetry|Extended Holter Monitor)/.test(box.value)) {
+              const inp = document.querySelector(`input[data-test="${box.value}"]`);
+              if (inp && inp.value) text += ` (${inp.value} days)`;
+            }
+            // Include duration for Ambulatory BP monitor
+            if (box.dataset.category === 'Monitoring Device' && box.value === 'Ambulatory Blood Pressure Monitor') {
+              const selBP = document.querySelector(`select[data-test="${box.value}"]`);
+              if (selBP && selBP.value) text += ` (${selBP.value})`;
+            }
+            if (box.dataset.category === 'Procedures') {
+              const sel = document.querySelector(`select[data-test="${box.value}"]`);
+              if (sel) text += ` at ${sel.value}`;
+            }
+            if (box.dataset.category === 'Out-of-Office Imaging') {
+              if (box.value === 'Other') {
+                const inp = document.querySelector(`input[data-test="${box.value}"]`);
+                if (inp && inp.value) text += `: ${inp.value}`;
+              }
+              const sel = document.querySelector(`select[data-test="${box.value}"]`);
+              if (sel) text += ` from ${sel.value}`;
+            }
+          }
+          html += `<li>${text}</li>`;
+        });
+        html += `</ul>`;
+      });
+      
+      if (follow) {
+        html += `<p><strong>Follow up in:</strong> ${follow}</p>`;
+        html += `<p style="margin-top:8px;"><strong>Appointment Date:</strong> ___________________________ <span style="font-size:12px;color:#666;">(Staff: Please write the exact date)</span></p>`;
+      }
+      if (refer) html += `<p><strong>Refer to:</strong> ${refer}</p>`;
+      if (instruct) html += `<p><strong>Instructions:</strong> ${instruct}</p>`;
+      html += `<div class="signature"><p>Dr. Humayun Naqvi, MD, MBA, FACC<br>West Houston Heart Center<br>Phone: 832-271-5897 | Fax: 1 (877) 669-0063<br><a href="https://www.htxheart.com">www.htxheart.com</a></p></div>`;
+      
+      // Add No Show Policy
+      html += `<div style="margin-top:20px;padding:15px;background:#fff3cd;border:2px solid #ffc107;border-radius:6px;page-break-inside:avoid;">`;
+      html += `<h3 style="color:#856404;margin-top:0;margin-bottom:10px;font-size:16px;">⚠️ No Show Policy</h3>`;
+      html += `<p style="font-size:13px;line-height:1.6;margin-bottom:0;color:#333;">Please be aware that <strong>not cancelling your appointment at least 24 hours (one business day) in advance</strong> will result in a <strong>no show fee</strong>. We appreciate your understanding as this helps us serve all our patients better by allowing us to offer your appointment time to others who need care.</p>`;
+      html += `<p style="font-size:13px;line-height:1.6;margin-top:10px;margin-bottom:0;color:#333;">To cancel or reschedule, please call us at <strong>832-271-5897</strong> at least 24 hours before your scheduled appointment.</p>`;
+      html += `</div>`;
+      html += `</div>`;
+      
+      // Add patient-friendly test descriptions after the After Visit Summary
+      html += `<div style="margin-top:20px;padding:15px;background:#f9f9f9;border-left:4px solid #c00;border-radius:4px;">`;
+      html += `<h2 style="color:#c00;margin-top:0;margin-bottom:12px;font-size:16px;">Understanding Your Tests</h2>`;
+      html += `<p style="margin-bottom:12px;font-size:13px;line-height:1.6;">The following section explains each test that has been ordered for you in simple terms:</p>`;
+      
+      selected.forEach(box => {
+        let testName = box.value;
+        let description = TEST_DESCRIPTIONS[testName];
+        
+        // Handle "Other" option with custom text
+        if (testName === 'Other' && box.dataset.category === 'Out-of-Office Imaging') {
+          const inp = document.querySelector(`input[data-test="${testName}"]`);
+          if (inp && inp.value) {
+            testName = `Other: ${inp.value}`;
+            description = TEST_DESCRIPTIONS['Other'];
+          }
+        }
+        
+        // Handle "Please order labs" with custom text
+        if (testName === 'Please order labs') {
+          const inp = document.querySelector(`input[data-test="${testName}"]`);
+          if (inp && inp.value) {
+            testName = `Please order labs: ${inp.value}`;
+          }
+        }
+        
+        // Handle "Refer for Clinical Trial" with custom text
+        if (testName === 'Refer for Clinical Trial') {
+          const inp = document.querySelector(`input[data-test="${testName}"]`);
+          if (inp && inp.value) {
+            testName = `Refer for Clinical Trial: ${inp.value}`;
+          }
+        }
+        
+        if (description) {
+          html += `<div style="margin-bottom:15px;padding-bottom:15px;border-bottom:1px solid #ddd;">`;
+          html += `<strong style="color:#c00;font-size:14px;">${testName}</strong>`;
+          html += `<p style="margin-top:6px;margin-bottom:0;font-size:13px;line-height:1.6;color:#555;">${description}</p>`;
+          html += `</div>`;
+        }
+      });
+      
+      html += `</div>`;
+      
+      // Generate Mediterranean Diet Handout if checked - on separate page
+      if (mediterraneanDiet) {
+        html += `<div class="handout-page">`;
+        html += `<h1 style="color:#c00;text-align:center;margin-bottom:20px;">Mediterranean Diet Guide</h1>`;
+        html += `<div style="max-width:700px;margin:0 auto;padding:20px;line-height:1.8;">`;
+        
+        html += `<div style="background:#e8f5e9;padding:15px;border-radius:8px;margin-bottom:20px;border-left:5px solid #4caf50;">`;
+        html += `<h2 style="color:#2e7d32;margin-top:0;font-size:18px;">What is the Mediterranean Diet?</h2>`;
+        html += `<p style="font-size:14px;margin-bottom:0;">The Mediterranean diet is a heart-healthy eating plan based on the traditional foods and cooking styles of countries bordering the Mediterranean Sea. Research has shown that this diet can reduce your risk of heart disease, stroke, and other cardiovascular conditions. It emphasizes whole foods, healthy fats, and plenty of fruits and vegetables.</p>`;
+        html += `</div>`;
+        
+        html += `<h2 style="color:#c00;border-bottom:2px solid #c00;padding-bottom:8px;margin-top:25px;">Foods to Eat Daily</h2>`;
+        html += `<div style="margin-bottom:20px;">`;
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;">🥬 Vegetables (6+ servings daily)</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Leafy greens, tomatoes, bell peppers, broccoli, cauliflower, carrots, eggplant, zucchini, onions, and more. Aim for a variety of colors!</p>`;
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;margin-top:15px;">🍎 Fruits (3+ servings daily)</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Berries, apples, oranges, grapes, melons, pears, peaches, and other fresh fruits. Limit fruit juices.</p>`;
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;margin-top:15px;">🌾 Whole Grains (3-4 servings daily)</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Whole wheat bread, brown rice, quinoa, oats, barley, whole grain pasta, and bulgur.</p>`;
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;margin-top:15px;">🥜 Nuts & Seeds (1 serving daily)</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Almonds, walnuts, pistachios, cashews, chia seeds, flaxseeds, and pumpkin seeds. A small handful (about 1 ounce) is a serving.</p>`;
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;margin-top:15px;">🫒 Olive Oil (Primary fat source)</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Use extra virgin olive oil for cooking and salad dressings. It's rich in heart-healthy monounsaturated fats.</p>`;
+        html += `</div>`;
+        
+        html += `<h2 style="color:#c00;border-bottom:2px solid #c00;padding-bottom:8px;margin-top:25px;">Foods to Eat Weekly</h2>`;
+        html += `<div style="margin-bottom:20px;">`;
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;">🐟 Fish & Seafood (2-3 times per week)</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Salmon, tuna, mackerel, sardines, trout, and other fatty fish are rich in omega-3 fatty acids, which are excellent for heart health.</p>`;
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;margin-top:15px;">🍗 Poultry (2-3 times per week)</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Chicken and turkey (preferably skinless). Choose lean cuts and bake, grill, or roast instead of frying.</p>`;
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;margin-top:15px;">🥚 Eggs (2-4 per week)</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Eggs are a good source of protein. You can enjoy them boiled, poached, or scrambled with vegetables.</p>`;
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;margin-top:15px;">🧀 Cheese & Yogurt (Moderate amounts)</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Greek yogurt, feta, and other cheeses in moderation. Choose low-fat options when possible.</p>`;
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;margin-top:15px;">🍷 Red Wine (Optional, 1 glass per day)</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">If you drink alcohol, limit to one 5-ounce glass of red wine per day with meals. If you don't drink, you don't need to start.</p>`;
+        html += `</div>`;
+        
+        html += `<h2 style="color:#c00;border-bottom:2px solid #c00;padding-bottom:8px;margin-top:25px;">Foods to Limit or Avoid</h2>`;
+        html += `<div style="margin-bottom:20px;">`;
+        html += `<ul style="font-size:14px;line-height:1.8;margin-left:20px;">`;
+        html += `<li><strong>Red Meat:</strong> Limit to a few times per month. Choose lean cuts when you do eat it.</li>`;
+        html += `<li><strong>Processed Foods:</strong> Avoid processed meats (sausages, hot dogs, deli meats), packaged snacks, and fast food.</li>`;
+        html += `<li><strong>Refined Grains:</strong> Limit white bread, white rice, and refined pasta. Choose whole grain versions instead.</li>`;
+        html += `<li><strong>Added Sugars:</strong> Minimize sweets, desserts, and sugary beverages. Use natural sweeteners like honey or fruit when needed.</li>`;
+        html += `<li><strong>Butter & Margarine:</strong> Replace with olive oil for cooking and spreading.</li>`;
+        html += `</ul>`;
+        html += `</div>`;
+        
+        html += `<h2 style="color:#c00;border-bottom:2px solid #c00;padding-bottom:8px;margin-top:25px;">Sample Meal Plan</h2>`;
+        html += `<div style="background:#f5f5f5;padding:15px;border-radius:8px;margin-bottom:20px;">`;
+        html += `<h3 style="color:#0066cc;font-size:15px;margin-top:0;">Breakfast</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Greek yogurt with berries and a sprinkle of walnuts, or whole grain toast with avocado and a poached egg.</p>`;
+        html += `<h3 style="color:#0066cc;font-size:15px;margin-top:15px;">Lunch</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Mediterranean salad with mixed greens, tomatoes, cucumbers, olives, feta cheese, and grilled chicken, dressed with olive oil and lemon.</p>`;
+        html += `<h3 style="color:#0066cc;font-size:15px;margin-top:15px;">Dinner</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Baked salmon with roasted vegetables (broccoli, bell peppers, zucchini) and quinoa, drizzled with olive oil.</p>`;
+        html += `<h3 style="color:#0066cc;font-size:15px;margin-top:15px;">Snacks</h3>`;
+        html += `<p style="font-size:14px;margin-left:20px;">Fresh fruit, a handful of nuts, or raw vegetables with hummus.</p>`;
+        html += `</div>`;
+        
+        html += `<div style="background:#fff3cd;padding:15px;border-radius:8px;border-left:5px solid #ffc107;margin-bottom:20px;">`;
+        html += `<h3 style="color:#856404;margin-top:0;font-size:16px;">💡 Tips for Success</h3>`;
+        html += `<ul style="font-size:14px;line-height:1.8;margin-left:20px;margin-bottom:0;">`;
+        html += `<li>Start gradually - you don't need to change everything at once</li>`;
+        html += `<li>Cook at home more often to control ingredients</li>`;
+        html += `<li>Use herbs and spices instead of salt for flavor</li>`;
+        html += `<li>Make vegetables the star of your plate</li>`;
+        html += `<li>Stay hydrated with water throughout the day</li>`;
+        html += `<li>Enjoy meals with family and friends - eating is social!</li>`;
+        html += `</ul>`;
+        html += `</div>`;
+        
+        html += `<div style="background:#e3f2fd;padding:15px;border-radius:8px;border-left:5px solid #2196f3;margin-bottom:20px;">`;
+        html += `<h3 style="color:#1565c0;margin-top:0;font-size:16px;">❤️ Heart Health Benefits</h3>`;
+        html += `<p style="font-size:14px;margin-bottom:0;">Research shows the Mediterranean diet can help:</p>`;
+        html += `<ul style="font-size:14px;line-height:1.8;margin-left:20px;margin-top:8px;margin-bottom:0;">`;
+        html += `<li>Lower cholesterol levels</li>`;
+        html += `<li>Reduce blood pressure</li>`;
+        html += `<li>Decrease risk of heart attack and stroke</li>`;
+        html += `<li>Improve blood sugar control</li>`;
+        html += `<li>Support healthy weight management</li>`;
+        html += `<li>Reduce inflammation in the body</li>`;
+        html += `</ul>`;
+        html += `</div>`;
+        
+        html += `<div style="text-align:center;margin-top:30px;padding-top:20px;border-top:2px solid #ddd;font-size:12px;color:#666;">`;
+        html += `<p><strong>West Houston Heart Center</strong><br>Dr. Humayun Naqvi, MD, MBA, FACC<br>Phone: 832-271-5897 | <a href="https://www.htxheart.com" style="color:#c00;">www.htxheart.com</a></p>`;
+        html += `<p style="margin-top:15px;font-size:11px;">This information is for educational purposes only. Please consult with your healthcare provider before making significant dietary changes.</p>`;
+        html += `</div>`;
+        html += `</div>`;
+        html += `</div>`;
+      }
+      
+      // Generate Exercise Regimen Handout if checked - on separate page
+      if (exerciseRegimen) {
+        html += `<div class="handout-page">`;
+        html += `<h1 style="color:#c00;text-align:center;margin-bottom:20px;">Exercise Regimen for Heart Health</h1>`;
+        html += `<div style="max-width:700px;margin:0 auto;padding:20px;line-height:1.8;">`;
+        
+        html += `<div style="background:#e3f2fd;padding:15px;border-radius:8px;margin-bottom:20px;border-left:5px solid #2196f3;">`;
+        html += `<h2 style="color:#1565c0;margin-top:0;font-size:18px;">Why Exercise Matters for Your Heart</h2>`;
+        html += `<p style="font-size:14px;margin-bottom:0;">Regular physical activity is one of the most important things you can do for your heart health. Exercise strengthens your heart muscle, improves circulation, lowers blood pressure, helps maintain a healthy weight, and reduces stress. This guide will help you create a safe and effective exercise routine tailored for heart health.</p>`;
+        html += `</div>`;
+        
+        html += `<h2 style="color:#c00;border-bottom:2px solid #c00;padding-bottom:8px;margin-top:25px;">Cardiovascular Exercise (Aerobic Activity)</h2>`;
+        html += `<div class="content-section" style="margin-bottom:20px;page-break-inside:avoid;">`;
+        html += `<p style="font-size:14px;margin-bottom:15px;"><strong>Goal:</strong> Aim for at least 150 minutes of moderate-intensity cardio per week, or 75 minutes of vigorous-intensity cardio per week.</strong></p>`;
+        
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;">🏃 Moderate-Intensity Exercises (30-60 minutes, 5 days/week)</h3>`;
+        html += `<ul style="font-size:14px;line-height:1.8;margin-left:20px;">`;
+        html += `<li><strong>Brisk Walking:</strong> Walk at a pace where you can talk but feel slightly breathless. Start with 10-15 minutes and gradually increase to 30-45 minutes.</li>`;
+        html += `<li><strong>Cycling:</strong> Stationary bike or outdoor cycling at a moderate pace. Great for low-impact cardio.</li>`;
+        html += `<li><strong>Swimming:</strong> Excellent full-body workout that's easy on joints. Aim for continuous swimming or water aerobics.</li>`;
+        html += `<li><strong>Elliptical Machine:</strong> Low-impact option that works both upper and lower body.</li>`;
+        html += `<li><strong>Dancing:</strong> Fun way to get cardio - try ballroom, line dancing, or Zumba classes.</li>`;
+        html += `<li><strong>Rowing:</strong> Full-body workout that's gentle on joints.</li>`;
+        html += `</ul>`;
+        
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;margin-top:20px;">⚡ Vigorous-Intensity Exercises (20-30 minutes, 3 days/week)</h3>`;
+        html += `<ul style="font-size:14px;line-height:1.8;margin-left:20px;">`;
+        html += `<li><strong>Jogging/Running:</strong> Only if cleared by your doctor. Start slow and build gradually.</li>`;
+        html += `<li><strong>Fast Cycling:</strong> Increase resistance and speed on stationary bike or outdoor cycling.</li>`;
+        html += `<li><strong>Swimming Laps:</strong> Continuous swimming at a faster pace.</li>`;
+        html += `<li><strong>High-Intensity Interval Training (HIIT):</strong> Short bursts of intense activity followed by recovery. Example: 30 seconds fast, 60 seconds slow, repeat.</li>`;
+        html += `<li><strong>Stair Climbing:</strong> Use stairs or a stair climber machine at a brisk pace.</li>`;
+        html += `</ul>`;
+        
+        html += `<div style="background:#fff3cd;padding:12px;border-radius:6px;margin-top:15px;border-left:4px solid #ffc107;">`;
+        html += `<p style="font-size:13px;margin:0;"><strong>💡 How to Know Your Intensity:</strong></p>`;
+        html += `<ul style="font-size:13px;line-height:1.6;margin-left:20px;margin-top:8px;margin-bottom:0;">`;
+        html += `<li><strong>Moderate:</strong> You can talk but not sing. You feel warm and slightly out of breath.</li>`;
+        html += `<li><strong>Vigorous:</strong> You can only say a few words at a time. You're breathing hard and sweating.</li>`;
+        html += `</ul>`;
+        html += `</div>`;
+        html += `</div>`;
+        
+        html += `<h2 style="color:#c00;border-bottom:2px solid #c00;padding-bottom:8px;margin-top:25px;">Strength Training (Resistance Exercise)</h2>`;
+        html += `<div class="content-section" style="margin-bottom:20px;page-break-inside:avoid;">`;
+        html += `<p style="font-size:14px;margin-bottom:15px;"><strong>Goal:</strong> Perform strength training exercises 2-3 times per week, with at least one day of rest between sessions.</strong></p>`;
+        
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;">💪 Upper Body Exercises</h3>`;
+        html += `<ul style="font-size:14px;line-height:1.8;margin-left:20px;">`;
+        html += `<li><strong>Chest Press:</strong> Using resistance bands or light weights, push forward from chest level. 2 sets of 10-15 repetitions.</li>`;
+        html += `<li><strong>Bicep Curls:</strong> Hold weights or resistance band, curl arms up. 2 sets of 10-15 repetitions.</li>`;
+        html += `<li><strong>Shoulder Raises:</strong> Lift arms to shoulder height to the sides. 2 sets of 10-15 repetitions.</li>`;
+        html += `<li><strong>Wall Push-ups:</strong> Stand facing wall, push away. Progress to knee push-ups, then full push-ups. 2 sets of 10-15 repetitions.</li>`;
+        html += `<li><strong>Rows:</strong> Pull resistance band or weights toward your body. 2 sets of 10-15 repetitions.</li>`;
+        html += `</ul>`;
+        
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;margin-top:20px;">🦵 Lower Body Exercises</h3>`;
+        html += `<ul style="font-size:14px;line-height:1.8;margin-left:20px;">`;
+        html += `<li><strong>Squats:</strong> Stand with feet shoulder-width apart, lower as if sitting in a chair. Keep knees behind toes. 2 sets of 10-15 repetitions.</li>`;
+        html += `<li><strong>Lunges:</strong> Step forward, lower back knee toward ground. Alternate legs. 2 sets of 10-15 per leg.</li>`;
+        html += `<li><strong>Leg Press:</strong> If using a machine, press weight away with legs. 2 sets of 10-15 repetitions.</li>`;
+        html += `<li><strong>Calf Raises:</strong> Rise up on toes, lower slowly. 2 sets of 15-20 repetitions.</li>`;
+        html += `<li><strong>Glute Bridges:</strong> Lie on back, lift hips up. 2 sets of 15-20 repetitions.</li>`;
+        html += `</ul>`;
+        
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;margin-top:20px;">🏋️ Core Strengthening</h3>`;
+        html += `<ul style="font-size:14px;line-height:1.8;margin-left:20px;">`;
+        html += `<li><strong>Planks:</strong> Hold body in straight line, supported on forearms and toes. Start with 10-20 seconds, build to 60 seconds.</li>`;
+        html += `<li><strong>Abdominal Crunches:</strong> Lie on back, lift shoulders off ground. 2 sets of 15-20 repetitions.</li>`;
+        html += `<li><strong>Dead Bug:</strong> Lie on back, alternate extending opposite arm and leg. 2 sets of 10 per side.</li>`;
+        html += `<li><strong>Bird Dog:</strong> On hands and knees, extend opposite arm and leg. 2 sets of 10 per side.</li>`;
+        html += `</ul>`;
+        
+        html += `<div style="background:#e8f5e9;padding:12px;border-radius:6px;margin-top:15px;border-left:4px solid #4caf50;">`;
+        html += `<p style="font-size:13px;margin:0;"><strong>✅ Strength Training Tips:</strong></p>`;
+        html += `<ul style="font-size:13px;line-height:1.6;margin-left:20px;margin-top:8px;margin-bottom:0;">`;
+        html += `<li>Start with light weights or resistance bands</li>`;
+        html += `<li>Focus on proper form over heavy weight</li>`;
+        html += `<li>Breathe out during exertion, breathe in during release</li>`;
+        html += `<li>Rest 30-60 seconds between sets</li>`;
+        html += `<li>Gradually increase weight or resistance as you get stronger</li>`;
+        html += `</ul>`;
+        html += `</div>`;
+        html += `</div>`;
+        
+        html += `<h2 style="color:#c00;border-bottom:2px solid #c00;padding-bottom:8px;margin-top:25px;">Sample Weekly Exercise Schedule</h2>`;
+        html += `<div class="content-section" style="background:#f5f5f5;padding:15px;border-radius:8px;margin-bottom:20px;page-break-inside:avoid;">`;
+        html += `<table style="width:100%;border-collapse:collapse;font-size:14px;page-break-inside:avoid;">`;
+        html += `<tr style="background:#0066cc;color:white;"><th style="padding:10px;text-align:left;border:1px solid #ddd;">Day</th><th style="padding:10px;text-align:left;border:1px solid #ddd;">Activity</th><th style="padding:10px;text-align:left;border:1px solid #ddd;">Duration</th></tr>`;
+        html += `<tr><td style="padding:8px;border:1px solid #ddd;"><strong>Monday</strong></td><td style="padding:8px;border:1px solid #ddd;">Brisk Walk</td><td style="padding:8px;border:1px solid #ddd;">30-45 min</td></tr>`;
+        html += `<tr style="background:#f9f9f9;"><td style="padding:8px;border:1px solid #ddd;"><strong>Tuesday</strong></td><td style="padding:8px;border:1px solid #ddd;">Strength Training (Full Body)</td><td style="padding:8px;border:1px solid #ddd;">20-30 min</td></tr>`;
+        html += `<tr><td style="padding:8px;border:1px solid #ddd;"><strong>Wednesday</strong></td><td style="padding:8px;border:1px solid #ddd;">Swimming or Cycling</td><td style="padding:8px;border:1px solid #ddd;">30-45 min</td></tr>`;
+        html += `<tr style="background:#f9f9f9;"><td style="padding:8px;border:1px solid #ddd;"><strong>Thursday</strong></td><td style="padding:8px;border:1px solid #ddd;">Rest or Light Stretching</td><td style="padding:8px;border:1px solid #ddd;">-</td></tr>`;
+        html += `<tr><td style="padding:8px;border:1px solid #ddd;"><strong>Friday</strong></td><td style="padding:8px;border:1px solid #ddd;">Brisk Walk or Elliptical</td><td style="padding:8px;border:1px solid #ddd;">30-45 min</td></tr>`;
+        html += `<tr style="background:#f9f9f9;"><td style="padding:8px;border:1px solid #ddd;"><strong>Saturday</strong></td><td style="padding:8px;border:1px solid #ddd;">Strength Training (Full Body)</td><td style="padding:8px;border:1px solid #ddd;">20-30 min</td></tr>`;
+        html += `<tr><td style="padding:8px;border:1px solid #ddd;"><strong>Sunday</strong></td><td style="padding:8px;border:1px solid #ddd;">Active Recovery (Gentle walk, yoga, or rest)</td><td style="padding:8px;border:1px solid #ddd;">20-30 min</td></tr>`;
+        html += `</table>`;
+        html += `</div>`;
+        
+        html += `<p style="font-size:14px;line-height:1.6;margin-top:20px;margin-bottom:20px;color:#555;">Use the schedule above as a starting point and adjust it based on your fitness level, schedule, and doctor's recommendations. Remember, consistency is more important than intensity - even small amounts of regular exercise provide significant heart health benefits.</p>`;
+        
+        html += `<div style="page-break-before: always;"></div>`;
+        html += `<div class="content-section" style="page-break-inside:avoid;margin-bottom:20px;">`;
+        html += `<h2 style="color:#c00;border-bottom:2px solid #c00;padding-bottom:8px;margin-top:0;">Patient Accountability Guide</h2>`;
+        html += `<div style="background:#fff3cd;padding:15px;border-radius:8px;margin-bottom:20px;border-left:5px solid #ffc107;page-break-inside:avoid;">`;
+        html += `<h3 style="color:#856404;margin-top:0;font-size:16px;">📋 Weekly Exercise Log</h3>`;
+        html += `<p style="font-size:14px;margin-bottom:15px;">Use this log to track your exercise and stay accountable. Bring it to your follow-up appointments.</p>`;
+        html += `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:15px;page-break-inside:avoid;">`;
+        html += `<tr style="background:#0066cc;color:white;"><th style="padding:8px;text-align:left;border:1px solid #ddd;">Date</th><th style="padding:8px;text-align:left;border:1px solid #ddd;">Type of Exercise</th><th style="padding:8px;text-align:left;border:1px solid #ddd;">Duration</th><th style="padding:8px;text-align:left;border:1px solid #ddd;">Intensity</th><th style="padding:8px;text-align:left;border:1px solid #ddd;">Notes</th></tr>`;
+        for (let i = 0; i < 7; i++) {
+          html += `<tr><td style="padding:6px;border:1px solid #ddd;">&nbsp;</td><td style="padding:6px;border:1px solid #ddd;">&nbsp;</td><td style="padding:6px;border:1px solid #ddd;">&nbsp;</td><td style="padding:6px;border:1px solid #ddd;">&nbsp;</td><td style="padding:6px;border:1px solid #ddd;">&nbsp;</td></tr>`;
+        }
+        html += `</table>`;
+        html += `<div style="page-break-inside:avoid;">`;
+        html += `<p style="font-size:13px;margin-bottom:0;"><strong>Weekly Goal:</strong> Check off your goals as you achieve them:</p>`;
+        html += `<ul style="font-size:13px;line-height:1.8;margin-left:20px;margin-top:8px;margin-bottom:0;page-break-inside:avoid;">`;
+        html += `<li>☐ Completed 150+ minutes of moderate cardio OR 75+ minutes of vigorous cardio</li>`;
+        html += `<li>☐ Completed 2-3 strength training sessions</li>`;
+        html += `<li>☐ Stayed active 5+ days this week</li>`;
+        html += `<li>☐ Drank plenty of water during and after exercise</li>`;
+        html += `<li>☐ Listened to my body and rested when needed</li>`;
+        html += `</ul>`;
+        html += `</div>`;
+        html += `</div>`;
+        html += `</div>`;
+        
+        html += `<h2 style="color:#c00;border-bottom:2px solid #c00;padding-bottom:8px;margin-top:25px;">Safety Guidelines & Warning Signs</h2>`;
+        html += `<div class="content-section" style="margin-bottom:20px;page-break-inside:avoid;">`;
+        html += `<div class="content-section" style="background:#ffebee;padding:15px;border-radius:8px;border-left:5px solid #f44336;margin-bottom:15px;page-break-inside:avoid;">`;
+        html += `<h3 style="color:#c62828;margin-top:0;font-size:16px;">⚠️ Stop Exercising Immediately If You Experience:</h3>`;
+        html += `<ul style="font-size:14px;line-height:1.8;margin-left:20px;margin-bottom:0;">`;
+        html += `<li>Chest pain or pressure</li>`;
+        html += `<li>Severe shortness of breath</li>`;
+        html += `<li>Dizziness or lightheadedness</li>`;
+        html += `<li>Irregular heartbeat or palpitations</li>`;
+        html += `<li>Nausea or excessive fatigue</li>`;
+        html += `<li>Pain in your arms, neck, jaw, or back</li>`;
+        html += `<li>If symptoms persist, seek medical attention immediately</li>`;
+        html += `</ul>`;
+        html += `</div>`;
+        
+        html += `<h3 style="color:#0066cc;font-size:16px;margin-bottom:8px;">✅ Before You Start:</h3>`;
+        html += `<ul style="font-size:14px;line-height:1.8;margin-left:20px;">`;
+        html += `<li>Always warm up for 5-10 minutes before exercise (light walking, arm circles)</li>`;
+        html += `<li>Cool down for 5-10 minutes after exercise (gentle stretching, slow walking)</li>`;
+        html += `<li>Stay hydrated - drink water before, during, and after exercise</li>`;
+        html += `<li>Wear comfortable, supportive shoes and clothing</li>`;
+        html += `<li>Start slowly and gradually increase intensity and duration</li>`;
+        html += `<li>If you're new to exercise or have health concerns, consult with your doctor first</li>`;
+        html += `</ul>`;
+        html += `</div>`;
+        
+        html += `<h2 style="color:#c00;border-bottom:2px solid #c00;padding-bottom:8px;margin-top:25px;">Progression Plan</h2>`;
+        html += `<div class="content-section" style="background:#e8f5e9;padding:15px;border-radius:8px;margin-bottom:20px;border-left:5px solid #4caf50;page-break-inside:avoid;">`;
+        html += `<h3 style="color:#2e7d32;margin-top:0;font-size:16px;">📈 Building Your Fitness Gradually</h3>`;
+        html += `<p style="font-size:14px;margin-bottom:12px;"><strong>Week 1-2 (Getting Started):</strong></p>`;
+        html += `<ul style="font-size:13px;line-height:1.6;margin-left:20px;margin-bottom:12px;">`;
+        html += `<li>Cardio: 10-15 minutes, 3-4 days per week</li>`;
+        html += `<li>Strength: 1 session per week, light weights or body weight only</li>`;
+        html += `<li>Focus on establishing the habit</li>`;
+        html += `</ul>`;
+        html += `<p style="font-size:14px;margin-bottom:12px;"><strong>Week 3-4 (Building):</strong></p>`;
+        html += `<ul style="font-size:13px;line-height:1.6;margin-left:20px;margin-bottom:12px;">`;
+        html += `<li>Cardio: 20-30 minutes, 4-5 days per week</li>`;
+        html += `<li>Strength: 2 sessions per week</li>`;
+        html += `<li>Gradually increase intensity</li>`;
+        html += `</ul>`;
+        html += `<p style="font-size:14px;margin-bottom:12px;"><strong>Week 5+ (Maintaining):</strong></p>`;
+        html += `<ul style="font-size:13px;line-height:1.6;margin-left:20px;margin-bottom:0;">`;
+        html += `<li>Cardio: 30-45 minutes, 5 days per week</li>`;
+        html += `<li>Strength: 2-3 sessions per week</li>`;
+        html += `<li>Continue challenging yourself while listening to your body</li>`;
+        html += `</ul>`;
+        html += `</div>`;
+        
+        html += `<div style="text-align:center;margin-top:30px;padding-top:20px;border-top:2px solid #ddd;font-size:12px;color:#666;">`;
+        html += `<p><strong>West Houston Heart Center</strong><br>Dr. Humayun Naqvi, MD, MBA, FACC<br>Phone: 832-271-5897 | <a href="https://www.htxheart.com" style="color:#c00;">www.htxheart.com</a></p>`;
+        html += `<p style="margin-top:15px;font-size:11px;">This information is for educational purposes only. Always consult with your healthcare provider before starting a new exercise program, especially if you have heart conditions, high blood pressure, or other health concerns.</p>`;
+        html += `</div>`;
+        html += `</div>`;
+        html += `</div>`;
+      }
+      
+      html += `</body></html>`;
+      pw.document.write(html);
+      pw.document.close();
+      pw.focus();
+      pw.print();
+      
+      // Clear form
+      document.getElementById('order-form').reset();
+      document.getElementById('dos').value = dosValue;
+      initAdminForm();
+    });
+    
+    // Initialize app
+    initUsers();
+    showView();
+  </script>
+</body>
+</html>
