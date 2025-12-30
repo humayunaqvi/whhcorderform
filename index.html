@@ -4,11 +4,26 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Clinic Visit - Order Form</title>
+  <title>West Houston Heart Center - Order System</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 10px; color: #333; }
-    h1 { text-align: center; color: #c00; margin-bottom: 10px; }
-    form { max-width: 600px; margin: 0 auto; border: 1px solid #ddd; padding: 10px; border-radius: 6px; background: #fafafa; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 10px; color: #333; background: #f5f5f5; }
+    
+    /* Login Page Styles */
+    #login-page { max-width: 400px; margin: 50px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    #login-page h1 { text-align: center; color: #c00; margin-bottom: 20px; }
+    #login-page label { display: block; margin: 15px 0 5px; font-weight: bold; }
+    #login-page input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    #login-page button { width: 100%; padding: 12px; background: #c00; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+    #login-page button:hover { background: #a00; }
+    .login-error { color: #c00; margin-top: 10px; text-align: center; display: none; }
+    
+    /* Admin Form Styles */
+    #admin-view { display: none; max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    #admin-view h1 { text-align: center; color: #c00; margin-bottom: 10px; }
+    .logout-btn { float: right; padding: 8px 15px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 10px; }
+    .logout-btn:hover { background: #555; }
+    form { margin-top: 20px; }
     label { display: flex; align-items: center; margin: 6px 0; }
     label > input, label > textarea, label > select { margin-left: 8px; flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
     label > input[type="checkbox"] { margin-left: 0; margin-right: 8px; flex: 0 0 auto; width: auto; }
@@ -18,17 +33,26 @@
     #categories div input[type="number"],
     #categories div select,
     #categories div input[type="text"] { margin-left: auto; width: 100px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
-    button { width: 100%; padding: 10px; background: #c00; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px; }
-    button:hover { background: #a00; }
-    .config-section { margin: 10px 0; padding: 10px; background: #e8f4f8; border: 1px solid #0078d4; border-radius: 4px; }
-    .config-section label { display: block; margin: 5px 0; font-size: 13px; }
-    .config-section input { width: calc(100% - 16px); padding: 6px; margin-top: 5px; }
+    button[type="submit"] { width: 100%; padding: 10px; background: #c00; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+    button[type="submit"]:hover { background: #a00; }
     .status-message { margin-top: 10px; padding: 8px; border-radius: 4px; font-size: 14px; display: none; }
     .status-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .status-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    .instructions-toggle { cursor: pointer; color: #0078d4; text-decoration: underline; margin-top: 5px; font-size: 12px; }
-    .instructions-content { display: none; margin-top: 10px; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
-    .instructions-content.show { display: block; }
+    
+    /* Staff Dashboard Styles */
+    #staff-view { display: none; max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    #staff-view h1 { text-align: center; color: #0066cc; margin-bottom: 20px; }
+    .date-filter { text-align: center; margin-bottom: 20px; }
+    .date-filter input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    .task-card { background: #f5f5f5; border: 2px solid #0066cc; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
+    .task-header { background: #0066cc; color: #fff; padding: 10px; border-radius: 4px 4px 0 0; margin: -15px -15px 10px -15px; font-weight: bold; }
+    .task-item { padding: 8px; margin: 5px 0; background: white; border-left: 4px solid #0066cc; border-radius: 4px; display: flex; align-items: flex-start; }
+    .task-item input[type="checkbox"] { margin-right: 10px; margin-top: 3px; width: 18px; height: 18px; cursor: pointer; }
+    .task-item.completed { opacity: 0.6; text-decoration: line-through; }
+    .task-category { font-weight: bold; color: #0066cc; margin-bottom: 3px; font-size: 13px; }
+    .task-details { font-size: 12px; color: #666; margin-left: 28px; }
+    .no-tasks { text-align: center; padding: 40px; color: #666; font-size: 16px; }
+    
     @media (max-width: 600px) {
       label { flex-direction: column; align-items: flex-start; }
       label > input, label > textarea, label > select { margin-left: 0; width: 100%; }
@@ -38,31 +62,260 @@
   </style>
 </head>
 <body>
-  <h1>Clinic Visit - Order Form</h1>
-  <form id="order-form">
-    <label>Patient Name:<input type="text" id="patient-name" required></label>
-    <label>Date of Birth:<input type="date" id="dob"></label>
-    <label>Date of Service:<input type="date" id="dos" readonly></label>
-    <div id="categories"></div>
-    <label>Follow-up visit:<input type="text" id="followup" placeholder="e.g., 2 weeks"></label>
-    <label>Refer to:<input type="text" id="referto" placeholder="Doctor name & specialty"></label>
-    <label><input type="checkbox" id="pcp"> Update PCP information</label>
-    <label><input type="checkbox" id="mediterranean-diet"> Give Mediterranean Diet Info</label>
-    <label><input type="checkbox" id="exercise-regimen"> Give Exercise Regimen Info</label>
-    <label>Instructions for Patient:<textarea id="instructions" rows="4" placeholder="Enter any additional instructions..."></textarea></label>
-    <button type="submit">Generate Print Page</button>
-  </form>
+  <!-- Login Page -->
+  <div id="login-page">
+    <h1>West Houston Heart Center</h1>
+    <h2 style="text-align: center; font-size: 18px; margin-bottom: 20px;">Order System</h2>
+    <form id="login-form">
+      <label>Username:</label>
+      <input type="text" id="username" required autocomplete="username">
+      <label>Password:</label>
+      <input type="password" id="password" required autocomplete="current-password">
+      <button type="submit">Login</button>
+      <div class="login-error" id="login-error">Invalid username or password</div>
+    </form>
+  </div>
+
+  <!-- Admin View (Order Form) -->
+  <div id="admin-view">
+    <button class="logout-btn" onclick="logout()">Logout</button>
+    <h1>Clinic Visit - Order Form</h1>
+    <form id="order-form">
+      <label>Patient Name:<input type="text" id="patient-name" required></label>
+      <label>Date of Service:<input type="date" id="dos" readonly></label>
+      <div id="categories"></div>
+      <label>Follow-up visit:<input type="text" id="followup" placeholder="e.g., 2 weeks"></label>
+      <label>Refer to:<input type="text" id="referto" placeholder="Doctor name & specialty"></label>
+      <label><input type="checkbox" id="pcp"> Update PCP information</label>
+      <label><input type="checkbox" id="mediterranean-diet"> Give Mediterranean Diet Info</label>
+      <label><input type="checkbox" id="exercise-regimen"> Give Exercise Regimen Info</label>
+      <label>Instructions for Patient:<textarea id="instructions" rows="4" placeholder="Enter any additional instructions..."></textarea></label>
+      <button type="submit">Generate Print Page & Save Task</button>
+    </form>
+    <div class="status-message" id="status-message"></div>
+  </div>
+
+  <!-- Staff View (Task Dashboard) -->
+  <div id="staff-view">
+    <button class="logout-btn" onclick="logout()">Logout</button>
+    <h1>Staff Task Dashboard</h1>
+    <div class="date-filter">
+      <label>View tasks for date: <input type="date" id="task-date-filter"></label>
+    </div>
+    <div id="tasks-container"></div>
+  </div>
+
   <script>
-    // Patient-friendly test descriptions
+    // Authentication and User Management
+    const USERS_KEY = 'whhc_users';
+    const TASKS_KEY = 'whhc_tasks';
+    const SESSION_KEY = 'whhc_session';
+    
+    // Initialize default admin user if not exists
+    function initUsers() {
+      if (!localStorage.getItem(USERS_KEY)) {
+        const defaultUsers = {
+          'admin': { password: 'admin123', role: 'admin' },
+          'staff1': { password: 'staff123', role: 'staff' },
+          'staff2': { password: 'staff123', role: 'staff' }
+        };
+        localStorage.setItem(USERS_KEY, JSON.stringify(defaultUsers));
+      }
+    }
+    
+    // Simple password hash (for basic security - not production-grade)
+    function hashPassword(pwd) {
+      let hash = 0;
+      for (let i = 0; i < pwd.length; i++) {
+        const char = pwd.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return hash.toString();
+    }
+    
+    // Login function
+    function login(username, password) {
+      const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+      const user = users[username];
+      
+      if (user && user.password === password) {
+        const session = { username, role: user.role, timestamp: Date.now() };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        return true;
+      }
+      return false;
+    }
+    
+    // Check if user is logged in
+    function checkSession() {
+      const sessionStr = localStorage.getItem(SESSION_KEY);
+      if (!sessionStr) return null;
+      
+      const session = JSON.parse(sessionStr);
+      // Session expires after 8 hours
+      if (Date.now() - session.timestamp > 8 * 60 * 60 * 1000) {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      return session;
+    }
+    
+    // Logout function
+    function logout() {
+      localStorage.removeItem(SESSION_KEY);
+      showLoginPage();
+    }
+    
+    // Show appropriate view based on role
+    function showView() {
+      const session = checkSession();
+      if (!session) {
+        showLoginPage();
+        return;
+      }
+      
+      document.getElementById('login-page').style.display = 'none';
+      
+      if (session.role === 'admin') {
+        document.getElementById('admin-view').style.display = 'block';
+        document.getElementById('staff-view').style.display = 'none';
+        initAdminForm();
+      } else {
+        document.getElementById('admin-view').style.display = 'none';
+        document.getElementById('staff-view').style.display = 'block';
+        initStaffDashboard();
+      }
+    }
+    
+    function showLoginPage() {
+      document.getElementById('login-page').style.display = 'block';
+      document.getElementById('admin-view').style.display = 'none';
+      document.getElementById('staff-view').style.display = 'none';
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+    }
+    
+    // Login form handler
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('login-error');
+      
+      if (login(username, password)) {
+        errorDiv.style.display = 'none';
+        showView();
+      } else {
+        errorDiv.style.display = 'block';
+      }
+    });
+    
+    // Save task to localStorage
+    function saveTask(taskData) {
+      const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+      const task = {
+        id: Date.now().toString(),
+        ...taskData,
+        createdAt: new Date().toISOString(),
+        completed: false
+      };
+      tasks.push(task);
+      localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+    }
+    
+    // Get tasks for a specific date
+    function getTasksForDate(dateStr) {
+      const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+      return tasks.filter(task => task.dateOfService === dateStr);
+    }
+    
+    // Update task completion status
+    function toggleTaskCompletion(taskId, completed) {
+      const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = completed;
+        localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+      }
+    }
+    
+    // Initialize staff dashboard
+    function initStaffDashboard() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
+      
+      const dateFilter = document.getElementById('task-date-filter');
+      dateFilter.value = todayStr;
+      dateFilter.addEventListener('change', () => {
+        displayTasks(dateFilter.value);
+      });
+      
+      displayTasks(todayStr);
+    }
+    
+    // Display tasks for a date
+    function displayTasks(dateStr) {
+      const tasks = getTasksForDate(dateStr);
+      const container = document.getElementById('tasks-container');
+      
+      if (tasks.length === 0) {
+        container.innerHTML = '<div class="no-tasks">No tasks found for this date.</div>';
+        return;
+      }
+      
+      // Group tasks by patient
+      const tasksByPatient = {};
+      tasks.forEach(task => {
+        if (!tasksByPatient[task.patientName]) {
+          tasksByPatient[task.patientName] = [];
+        }
+        tasksByPatient[task.patientName].push(task);
+      });
+      
+      let html = '';
+      Object.entries(tasksByPatient).forEach(([patientName, patientTasks]) => {
+        html += `<div class="task-card">`;
+        html += `<div class="task-header">Patient: ${patientName} | Date of Service: ${formatDate(dateStr)}</div>`;
+        
+        patientTasks.forEach(task => {
+          html += `<div class="task-item ${task.completed ? 'completed' : ''}">`;
+          html += `<input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${task.id}', this.checked); location.reload();">`;
+          html += `<div style="flex: 1;">`;
+          html += `<div class="task-category">${task.category}</div>`;
+          html += `<div class="task-details"><strong>${task.taskText}</strong>`;
+          if (task.details && task.details.length > 0) {
+            html += ` - ${task.details.join(', ')}`;
+          }
+          html += `</div>`;
+          html += `</div>`;
+          html += `</div>`;
+        });
+        
+        html += `</div>`;
+      });
+      
+      container.innerHTML = html;
+    }
+    
+    // Format date helper
+    function formatDate(val) {
+      if (!val) return '';
+      const parts = val.split('-');
+      const y = parts[0], m = parts[1].replace(/^0/, ''), d = parts[2].replace(/^0/, '');
+      return `${m}/${d}/${y}`;
+    }
+    
+    // Patient-friendly test descriptions (same as before)
     const TEST_DESCRIPTIONS = {
-      // Stress Tests
       'Exercise treadmill stress test': 'This test evaluates how your heart performs during physical activity. You will walk on a treadmill while we monitor your heart rate, blood pressure, and heart rhythm. This helps us assess your heart\'s response to exercise and identify any potential issues.',
       'Lexiscan Nuclear stress test': 'This test uses a small amount of radioactive tracer to create images of your heart at rest and during stress. You will receive medication to simulate exercise, and we will take pictures of your heart to check blood flow and identify any areas that may not be receiving adequate blood supply.',
       'Exercise Nuclear stress test': 'Similar to the Lexiscan test, but you will exercise on a treadmill instead of receiving medication. This test uses a radioactive tracer to show how well blood flows to your heart muscle during physical activity.',
       'Stress Echocardiogram': 'This test combines an ultrasound of your heart with exercise or medication to see how well your heart pumps blood during stress. It helps identify areas of the heart that may not be functioning properly under stress.',
       'PET Stress': 'This advanced imaging test uses a radioactive tracer to create detailed 3D images of your heart. It provides very accurate information about blood flow to your heart muscle and can detect even small areas of reduced blood supply.',
-      
-      // Monitoring Devices
       'Mobile Cardiac Telemetry': 'A Mobile Cardiac Telemetry (MCT) device is a small, wearable monitor that continuously records your heart rhythm. You will wear it for the specified number of days, and it automatically sends your heart rhythm data to our monitoring center for review.',
       'Extended Holter Monitor': 'A Holter monitor is a portable device that continuously records your heart rhythm for an extended period. You will wear electrodes on your chest connected to a small recorder that you carry with you. This helps us identify irregular heart rhythms that may not occur during a brief office visit.',
       'Ambulatory Blood Pressure Monitor': 'This device automatically measures your blood pressure at regular intervals throughout the day and night while you go about your normal activities. It provides a more complete picture of your blood pressure patterns than single office measurements.',
@@ -70,16 +323,12 @@
       'Clinii Weight Scale': 'A smart scale that automatically sends your weight measurements to our clinic. This helps us monitor fluid retention and overall health status, which is especially important for heart conditions.',
       'BioBridge Device Monitoring enrollment': 'This program allows us to remotely monitor your implanted cardiac device (pacemaker, defibrillator, or loop recorder). Your device will automatically send information to our office, so we can check on it regularly without you needing to come in.',
       'In Office Pacemaker Interrogation': 'During this visit, we will check your pacemaker\'s settings and battery life using a special device. We will also review any stored information about your heart rhythm to ensure your pacemaker is working correctly.',
-      
-      // Office Imaging
       'Echocardiogram': 'An ultrasound of your heart that uses sound waves to create moving pictures of your heart\'s structure and function. It shows how well your heart pumps blood, the condition of your heart valves, and the size of your heart chambers. This is a painless test that takes about 30-45 minutes.',
       'Carotid Ultrasound': 'This ultrasound test examines the blood vessels in your neck (carotid arteries) that supply blood to your brain. It helps identify any narrowing or blockages that could increase your risk of stroke.',
       'Ankle-Brachial Index': 'This simple test compares the blood pressure in your ankles to the blood pressure in your arms. It helps detect peripheral artery disease, which is narrowing of arteries in your legs that can cause pain when walking.',
       'Peripheral Arterial Doppler': 'This ultrasound test examines the blood flow in the arteries of your arms or legs. It helps identify blockages or narrowing that may be causing symptoms like pain, numbness, or poor circulation.',
       'Abdominal Aortic Aneurysm Screen': 'An ultrasound of your abdomen to check for an enlarged area (aneurysm) in the main blood vessel (aorta) that carries blood from your heart. Early detection is important to prevent serious complications.',
       'Venous Study': 'An ultrasound test that examines the veins in your legs or arms to check for blood clots (deep vein thrombosis) or problems with vein function. It helps diagnose conditions like varicose veins or blood clots.',
-      
-      // Out-of-Office Imaging
       'Cardiac CTA': 'A specialized CT scan that creates detailed 3D images of your heart and coronary arteries. It uses contrast dye injected through an IV to visualize the blood vessels and can detect blockages or narrowing. This is a non-invasive alternative to cardiac catheterization.',
       'Cardiac CTA w/ FFR': 'This advanced cardiac CT scan includes Fractional Flow Reserve analysis, which uses computer modeling to determine if any blockages in your arteries are significant enough to affect blood flow to your heart muscle.',
       'Cardiac CTA with Cleerly Plaque analysis': 'This specialized cardiac CT scan uses advanced software (Cleerly) to analyze plaque in your coronary arteries. It provides detailed information about the type and amount of plaque, helping assess your risk of heart disease and guide treatment decisions.',
@@ -91,8 +340,6 @@
       'FDG PET': 'A specialized PET scan that uses a radioactive sugar tracer to identify areas of inflammation or infection in the heart. It helps diagnose conditions like cardiac sarcoidosis or infections of the heart.',
       'Sleep Study': 'An overnight test that monitors your breathing, heart rate, oxygen levels, and brain activity while you sleep. It helps diagnose sleep apnea, which can contribute to heart problems and high blood pressure.',
       'Other': 'Additional imaging test as specified by your doctor.',
-      
-      // Procedures
       'Left Heart Catheterization': 'A procedure where a thin tube (catheter) is inserted through an artery (usually in your wrist or groin) and guided to your heart. Contrast dye is injected to visualize your coronary arteries and check for blockages. This is the gold standard test for diagnosing coronary artery disease.',
       'Right Heart Catheterization': 'A procedure where a catheter is inserted through a vein and guided to the right side of your heart and lungs. It measures pressures in your heart and lungs, helping diagnose and manage conditions like heart failure or pulmonary hypertension.',
       'TEE': 'Transesophageal Echocardiogram - An ultrasound probe is passed through your mouth into your esophagus (food pipe) to get very clear images of your heart from behind. You will receive sedation for comfort. This provides better images than a regular echocardiogram.',
@@ -101,8 +348,6 @@
       'Loop Recorder Placement': 'A small device is implanted just under the skin of your chest to continuously monitor your heart rhythm for up to 3 years. It helps identify irregular rhythms that occur infrequently. The procedure is quick and done with local anesthesia.',
       'Dobutamine Stress Echo': 'An echocardiogram performed while you receive medication (dobutamine) that makes your heart work harder, simulating exercise. This is used when you cannot exercise on a treadmill. It helps assess how well your heart functions under stress.',
       'Tilt Table Test': 'You will lie on a table that tilts to different angles while we monitor your heart rate and blood pressure. This test helps diagnose fainting spells or dizziness that may be related to your heart or nervous system.',
-      
-      // Other
       'Obtain Medical Records': 'We will request your medical records from other healthcare providers to ensure we have complete information about your medical history.',
       'Blood Pressure Log': 'You will keep a log of your blood pressure readings at home to help us monitor and manage your blood pressure more effectively.',
       'Labs are printed': 'Laboratory test orders have been printed for you to take to the lab.',
@@ -112,42 +357,126 @@
       'Order Genetic Testing': 'Genetic testing will be ordered to help identify inherited heart conditions or genetic factors that may affect your cardiovascular health. This testing can help guide treatment decisions and provide important information for you and your family members.'
     };
     
-    // Generate Staff To-Do List HTML content
-    function generateTodoListHTML() {
+    const TEST_CATEGORIES = {
+      'Stress Tests': ['Exercise treadmill stress test','Lexiscan Nuclear stress test','Exercise Nuclear stress test','Stress Echocardiogram','PET Stress'],
+      'Monitoring Device': ['Mobile Cardiac Telemetry','Extended Holter Monitor','Ambulatory Blood Pressure Monitor','Clinii Blood Pressure Cuff','Clinii Weight Scale','BioBridge Device Monitoring enrollment','In Office Pacemaker Interrogation'],
+      'Office Imaging': ['Echocardiogram','Carotid Ultrasound','Ankle-Brachial Index','Peripheral Arterial Doppler','Abdominal Aortic Aneurysm Screen','Venous Study'],
+      'Out-of-Office Imaging': ['Cardiac CTA','Cardiac CTA w/ FFR','Cardiac CTA with Cleerly Plaque analysis','Calcium Score','CTA Carotid','CT Thoracic aorta','Cardiac MRI','PYP Scan','FDG PET','Sleep Study','Other'],
+      'Procedures': ['Left Heart Catheterization','Right Heart Catheterization','TEE','TEE w/ Cardioversion','Cardioversion only','Loop Recorder Placement','Dobutamine Stress Echo','Tilt Table Test'],
+      'Obtain Medical Records': ['Obtain Medical Records'],
+      'Blood Pressure Log': ['Blood Pressure Log'],
+      'Labs are printed': ['Labs are printed'],
+      'Please order labs': ['Please order labs'],
+      'Preoperative Paperwork': ['Send Preoperative Cardiac Risk Stratification Paperwork'],
+      'Refer for Clinical Trial': ['Refer for Clinical Trial'],
+      'Order Genetic Testing': ['Order Genetic Testing']
+    };
+    const HOSPITAL_OPTIONS = ['Houston Methodist','Memorial Hermann','Methodist ASC'];
+    const IMAGING_CENTERS = ['Simon Med','Houston Methodist','Memorial Hermann','Houston Medical Imaging'];
+    const BP_HOURS = ['24 hour','48 hour'];
+
+    function createWrapper(category, test) {
+      const div = document.createElement('div');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox'; checkbox.name = 'tests'; checkbox.value = test; checkbox.dataset.category = category;
+      const label = document.createElement('label'); label.append(checkbox, ` ${test}`);
+      div.appendChild(label);
+
+      if (category === 'Monitoring Device' && /(Mobile Cardiac Telemetry|Extended Holter Monitor)/.test(test)) {
+        const inp = document.createElement('input'); inp.type = 'number'; inp.min = '1'; inp.placeholder = 'Days'; inp.dataset.test = test;
+        div.appendChild(inp);
+      }
+      if (category === 'Monitoring Device' && test === 'Ambulatory Blood Pressure Monitor') {
+        const sel = document.createElement('select'); sel.dataset.test = test;
+        BP_HOURS.forEach(h => { const o = document.createElement('option'); o.value = h; o.textContent = h; sel.appendChild(o); });
+        div.appendChild(sel);
+      }
+      if (category === 'Out-of-Office Imaging') {
+        if (test === 'Other') {
+          const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Specify imaging'; inp.dataset.test = test; div.appendChild(inp);
+        }
+        const sel = document.createElement('select'); sel.dataset.test = test;
+        IMAGING_CENTERS.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+        div.appendChild(sel);
+      }
+      if (category === 'Procedures') {
+        const sel = document.createElement('select'); sel.dataset.test = test;
+        HOSPITAL_OPTIONS.forEach(h => { const o = document.createElement('option'); o.value = h; o.textContent = h; sel.appendChild(o); });
+        div.appendChild(sel);
+      }
+      if (category === 'Please order labs') {
+        const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Specify labs...'; inp.dataset.test = test; div.appendChild(inp);
+      }
+      if (category === 'Refer for Clinical Trial') {
+        const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Trial name'; inp.dataset.test = test; div.appendChild(inp);
+      }
+      return div;
+    }
+
+    function initAdminForm() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      document.getElementById('dos').value = `${year}-${month}-${day}`;
+      const categoriesDiv = document.getElementById('categories');
+      categoriesDiv.innerHTML = '';
+      const standalone = ['Obtain Medical Records','Blood Pressure Log','Labs are printed','Please order labs','Preoperative Paperwork','Refer for Clinical Trial','Order Genetic Testing'];
+      Object.entries(TEST_CATEGORIES).forEach(([category, tests]) => {
+        if (standalone.includes(category)) {
+          tests.forEach(test => categoriesDiv.appendChild(createWrapper(category, test)));
+        } else {
+          const fs = document.createElement('fieldset');
+          const lg = document.createElement('legend'); lg.textContent = category;
+          fs.appendChild(lg);
+          tests.forEach(test => fs.appendChild(createWrapper(category, test)));
+          categoriesDiv.appendChild(fs);
+        }
+      });
+    }
+
+    function showStatus(message, type) {
+      const statusDiv = document.getElementById('status-message');
+      if (message) {
+        statusDiv.textContent = message;
+        statusDiv.className = 'status-message status-' + type;
+        statusDiv.style.display = 'block';
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+        }, 5000);
+      } else {
+        statusDiv.style.display = 'none';
+      }
+    }
+
+    // Form submission handler - saves tasks and generates print output
+    document.getElementById('order-form').addEventListener('submit', e => {
+      e.preventDefault();
       const patient = document.getElementById('patient-name').value.trim();
-      const dob = formatDate(document.getElementById('dob').value);
-      const dos = formatDate(document.getElementById('dos').value);
+      const dosValue = document.getElementById('dos').value;
+      const dos = formatDate(dosValue);
       const follow = document.getElementById('followup').value.trim();
       const refer = document.getElementById('referto').value.trim();
       const pcp = document.getElementById('pcp').checked;
       const mediterraneanDiet = document.getElementById('mediterranean-diet').checked;
       const exerciseRegimen = document.getElementById('exercise-regimen').checked;
+      const instruct = document.getElementById('instructions').value.trim();
       const selected = document.querySelectorAll('input[name="tests"]:checked');
       
       if (selected.length === 0) {
         showStatus('No tests selected. Please select at least one test.', 'error');
-        return null;
+        return;
       }
       
-      let html = `<!DOCTYPE html><html><head><title>Staff To-Do List - ${patient}</title><style>
-        body{font-family:Arial,sans-serif;color:#333;margin:15px;font-size:11px;}h1{text-align:center;color:#0066cc;margin-bottom:10px;border-bottom:2px solid #0066cc;padding-bottom:6px;font-size:16px;}h2{color:#0066cc;margin:12px 0 8px;font-size:14px;}p{margin:8px 0;font-size:11px;}ul{list-style:none;padding:0;margin:6px 0;}li{padding:3px 0;border-bottom:1px solid #eee;font-size:11px;} .todo-list{background:#f5f5f5;border:2px solid #0066cc;border-radius:6px;padding:8px;margin:12px 0;} .todo-item{padding:5px;margin:4px 0;background:#fff;border-left:4px solid #0066cc;border-radius:4px;} .todo-category{font-weight:bold;color:#0066cc;margin-bottom:2px;font-size:11px;} .todo-details{font-size:10px;color:#666;margin-top:2px;} .staff-header{background:#0066cc;color:#fff;padding:6px;border-radius:4px 4px 0 0;margin:-8px -8px 8px -8px;font-weight:bold;font-size:11px;} .print-date{text-align:right;color:#666;font-size:10px;margin-bottom:6px;}
-      </style></head><body>`;
-      
-      html += `<div class="print-date">Generated: ${new Date().toLocaleString()}</div>`;
-      html += `<h1>Follow up tasks - ${dos}</h1>`;
-      html += `<div class="todo-list">`;
-      html += `<div class="staff-header">Patient: ${patient} | DOB: ${dob} | Date of Service: ${dos}</div>`;
-      
-      // Group tests by category
-      const testsByCategory = {};
+      // Save tasks to localStorage
+      const tasksByCategory = {};
       selected.forEach(box => {
         const category = box.dataset.category;
-        if (!testsByCategory[category]) testsByCategory[category] = [];
-        testsByCategory[category].push(box);
+        if (!tasksByCategory[category]) tasksByCategory[category] = [];
+        tasksByCategory[category].push(box);
       });
       
-      // Generate to-do items
-      Object.entries(testsByCategory).forEach(([category, boxes]) => {
+      Object.entries(tasksByCategory).forEach(([category, boxes]) => {
         boxes.forEach(box => {
           let taskText = box.value;
           let details = [];
@@ -181,177 +510,74 @@
             if (inp && inp.value) details.push(`Labs: ${inp.value}`);
           }
           
-          html += `<div class="todo-item">`;
-          html += `<div class="todo-category">${category}</div>`;
-          html += `<div class="todo-details"><strong>${taskText}</strong>`;
-          if (details.length > 0) {
-            html += ` - ${details.join(', ')}`;
+          if (box.value === 'Refer for Clinical Trial') {
+            const inp = document.querySelector(`input[data-test="${box.value}"]`);
+            if (inp && inp.value) details.push(`Trial: ${inp.value}`);
           }
-          html += `</div></div>`;
+          
+          saveTask({
+            patientName: patient,
+            dateOfService: dosValue,
+            category: category,
+            taskText: taskText,
+            details: details
+          });
         });
       });
       
       if (follow) {
-        html += `<div class="todo-item">`;
-        html += `<div class="todo-category">Follow-up</div>`;
-        html += `<div class="todo-details"><strong>Schedule follow-up visit:</strong> ${follow}</div>`;
-        html += `</div>`;
+        saveTask({
+          patientName: patient,
+          dateOfService: dosValue,
+          category: 'Follow-up',
+          taskText: `Schedule follow-up visit: ${follow}`,
+          details: []
+        });
       }
       
       if (refer) {
-        html += `<div class="todo-item">`;
-        html += `<div class="todo-category">Referral</div>`;
-        html += `<div class="todo-details"><strong>Process referral to:</strong> ${refer}</div>`;
-        html += `</div>`;
+        saveTask({
+          patientName: patient,
+          dateOfService: dosValue,
+          category: 'Referral',
+          taskText: `Process referral to: ${refer}`,
+          details: []
+        });
       }
       
       if (pcp) {
-        html += `<div class="todo-item">`;
-        html += `<div class="todo-category">PCP Information</div>`;
-        html += `<div class="todo-details"><strong>Update PCP information</strong></div>`;
-        html += `</div>`;
+        saveTask({
+          patientName: patient,
+          dateOfService: dosValue,
+          category: 'PCP Information',
+          taskText: 'Update PCP information',
+          details: []
+        });
       }
       
       if (mediterraneanDiet) {
-        html += `<div class="todo-item">`;
-        html += `<div class="todo-category">Patient Education</div>`;
-        html += `<div class="todo-details"><strong>Give Mediterranean Diet Info handout to patient</strong></div>`;
-        html += `</div>`;
+        saveTask({
+          patientName: patient,
+          dateOfService: dosValue,
+          category: 'Patient Education',
+          taskText: 'Give Mediterranean Diet Info handout to patient',
+          details: []
+        });
       }
       
       if (exerciseRegimen) {
-        html += `<div class="todo-item">`;
-        html += `<div class="todo-category">Patient Education</div>`;
-        html += `<div class="todo-details"><strong>Give Exercise Regimen Info handout to patient</strong></div>`;
-        html += `</div>`;
+        saveTask({
+          patientName: patient,
+          dateOfService: dosValue,
+          category: 'Patient Education',
+          taskText: 'Give Exercise Regimen Info handout to patient',
+          details: []
+        });
       }
       
-      html += `</div>`;
-      html += `<div style="margin-top:16px;padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:13px;">`;
-      html += `<strong>Note:</strong> Please follow up on all ordered tests and ensure patient receives proper instructions.`;
-      html += `</div></body></html>`;
+      showStatus('Tasks saved successfully! Generating print page...', 'success');
       
-      return html;
-    }
-    
-    
-    // Show status message
-    function showStatus(message, type) {
-      const statusDiv = document.getElementById('status-message');
-      if (message) {
-        statusDiv.textContent = message;
-        statusDiv.className = 'status-message status-' + type;
-        statusDiv.style.display = 'block';
-        setTimeout(() => {
-          statusDiv.style.display = 'none';
-        }, 5000);
-      } else {
-        statusDiv.style.display = 'none';
-      }
-    }
-    
-    // Toggle instructions visibility
-    function toggleInstructions() {
-      const content = document.getElementById('instructions-content');
-      content.classList.toggle('show');
-    }
-    
-    const TEST_CATEGORIES = {
-      'Stress Tests': ['Exercise treadmill stress test','Lexiscan Nuclear stress test','Exercise Nuclear stress test','Stress Echocardiogram','PET Stress'],
-      'Monitoring Device': ['Mobile Cardiac Telemetry','Extended Holter Monitor','Ambulatory Blood Pressure Monitor','Clinii Blood Pressure Cuff','Clinii Weight Scale','BioBridge Device Monitoring enrollment','In Office Pacemaker Interrogation'],
-      'Office Imaging': ['Echocardiogram','Carotid Ultrasound','Ankle-Brachial Index','Peripheral Arterial Doppler','Abdominal Aortic Aneurysm Screen','Venous Study'],
-      'Out-of-Office Imaging': ['Cardiac CTA','Cardiac CTA w/ FFR','Cardiac CTA with Cleerly Plaque analysis','Calcium Score','CTA Carotid','CT Thoracic aorta','Cardiac MRI','PYP Scan','FDG PET','Sleep Study','Other'],
-      'Procedures': ['Left Heart Catheterization','Right Heart Catheterization','TEE','TEE w/ Cardioversion','Cardioversion only','Loop Recorder Placement','Dobutamine Stress Echo','Tilt Table Test'],
-      'Obtain Medical Records': ['Obtain Medical Records'],
-      'Blood Pressure Log': ['Blood Pressure Log'],
-      'Labs are printed': ['Labs are printed'],
-      'Please order labs': ['Please order labs'],
-      'Preoperative Paperwork': ['Send Preoperative Cardiac Risk Stratification Paperwork'],
-      'Refer for Clinical Trial': ['Refer for Clinical Trial'],
-      'Order Genetic Testing': ['Order Genetic Testing']
-    };
-    const HOSPITAL_OPTIONS = ['Houston Methodist','Memorial Hermann','Methodist ASC'];
-    const IMAGING_CENTERS = ['Simon Med','Houston Methodist','Memorial Hermann','Houston Medical Imaging'];
-    const BP_HOURS = ['24 hour','48 hour'];
-
-    function createWrapper(category, test) {
-      const div = document.createElement('div');
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox'; checkbox.name = 'tests'; checkbox.value = test; checkbox.dataset.category = category;
-      const label = document.createElement('label'); label.append(checkbox, ` ${test}`);
-      div.appendChild(label);
-
-        if (category === 'Monitoring Device' && /(Mobile Cardiac Telemetry|Extended Holter Monitor)/.test(test)) {
-        const inp = document.createElement('input'); inp.type = 'number'; inp.min = '1'; inp.placeholder = 'Days'; inp.dataset.test = test;
-        div.appendChild(inp);
-      }
-      if (category === 'Monitoring Device' && test === 'Ambulatory Blood Pressure Monitor') {
-        const sel = document.createElement('select'); sel.dataset.test = test;
-        BP_HOURS.forEach(h => { const o = document.createElement('option'); o.value = h; o.textContent = h; sel.appendChild(o); });
-        div.appendChild(sel);
-      }
-      if (category === 'Out-of-Office Imaging') {
-        if (test === 'Other') {
-          const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Specify imaging'; inp.dataset.test = test; div.appendChild(inp);
-        }
-        const sel = document.createElement('select'); sel.dataset.test = test;
-        IMAGING_CENTERS.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
-        div.appendChild(sel);
-      }
-      if (category === 'Procedures') {
-        const sel = document.createElement('select'); sel.dataset.test = test;
-        HOSPITAL_OPTIONS.forEach(h => { const o = document.createElement('option'); o.value = h; o.textContent = h; sel.appendChild(o); });
-        div.appendChild(sel);
-      }
-      if (category === 'Please order labs') {
-        const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Specify labs...'; inp.dataset.test = test; div.appendChild(inp);
-      }
-        if (category === 'Refer for Clinical Trial') {
-        const inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Trial name'; inp.dataset.test = test; div.appendChild(inp);
-      }
-      return div;
-    }
-
-    (function renderCategories() {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      document.getElementById('dos').value = `${year}-${month}-${day}`;
-      const categoriesDiv = document.getElementById('categories');
-      const standalone = ['Obtain Medical Records','Blood Pressure Log','Labs are printed','Please order labs','Preoperative Paperwork','Refer for Clinical Trial','Order Genetic Testing'];
-      Object.entries(TEST_CATEGORIES).forEach(([category, tests]) => {
-        if (standalone.includes(category)) {
-          tests.forEach(test => categoriesDiv.appendChild(createWrapper(category, test)));
-        } else {
-          const fs = document.createElement('fieldset');
-          const lg = document.createElement('legend'); lg.textContent = category;
-          fs.appendChild(lg);
-          tests.forEach(test => fs.appendChild(createWrapper(category, test)));
-          categoriesDiv.appendChild(fs);
-        }
-      });
-    })();
-
-    function formatDate(val) {
-      if (!val) return '';
-      const parts = val.split('-');
-      const y = parts[0], m = parts[1].replace(/^0/, ''), d = parts[2].replace(/^0/, '');
-      return `${m}/${d}/${y}`;
-    }
-
-    document.getElementById('order-form').addEventListener('submit', e => {
-      e.preventDefault();
-      const patient = document.getElementById('patient-name').value.trim();
-      const dob = formatDate(document.getElementById('dob').value);
-      const dos = formatDate(document.getElementById('dos').value);
-      const follow = document.getElementById('followup').value.trim();
-      const refer = document.getElementById('referto').value.trim();
-      const pcp = document.getElementById('pcp').checked;
-      const mediterraneanDiet = document.getElementById('mediterranean-diet').checked;
-      const exerciseRegimen = document.getElementById('exercise-regimen').checked;
-      const instruct = document.getElementById('instructions').value.trim();
-      const selected = document.querySelectorAll('input[name="tests"]:checked');
+      // Generate full print output with all tests, descriptions, and handouts
       const pw = window.open('', '_blank');
       let html = `<!DOCTYPE html><html><head><title>After Visit Summary</title><style>
         body{font-family:Arial,sans-serif;color:#333;margin:10px;}h1{text-align:center;color:#c00;margin-bottom:16px;}h2{text-align:center;color:#0066cc;margin:12px 0 8px;border-top:2px solid #0066cc;padding-top:8px;font-size:14px;}p{margin:12px 0;font-size:14px;}ul{list-style:none;padding:0;margin:8px 0;}li{padding:4px 0;border-bottom:1px solid #eee;font-size:14px;} .section-title{font-weight:bold;margin:12px 0 4px;} .signature{margin-top:16px;border-top:1px solid #ccc;padding-top:8px;font-size:12px;color:#555;text-align:center;}.signature a{color:#c00;text-decoration:none;} .todo-list{background:#f5f5f5;border:2px solid #0066cc;border-radius:6px;padding:8px;margin:12px 0;} .todo-item{padding:5px;margin:4px 0;background:#fff;border-left:4px solid #0066cc;border-radius:4px;display:flex;align-items:flex-start;} .todo-item input[type="checkbox"]{margin-right:8px;margin-top:2px;width:16px;height:16px;cursor:pointer;} .todo-item label{flex:1;cursor:pointer;} .todo-category{font-weight:bold;color:#0066cc;margin-bottom:2px;font-size:11px;} .todo-details{font-size:10px;color:#666;margin-left:24px;} .staff-header{background:#0066cc;color:#fff;padding:6px;border-radius:4px 4px 0 0;margin:-8px -8px 8px -8px;font-weight:bold;font-size:11px;} .logo-container{text-align:center;margin:20px 0;}
@@ -372,7 +598,7 @@
       html += `<h1>After Visit Summary</h1>`;
       html += `<p>Thank you for visiting West Houston Heart Center and trusting us with your care.</p>`;
       html += `<p style="margin-top:12px;">We have summarized all the tests ordered during your visit along with detailed descriptions to help you understand what each test involves. If you have any questions about your tests, results, or treatment plan, please don't hesitate to message us through the <strong>Healow portal</strong> or call our office directly at <strong>832-271-5897</strong>. We're here to help!</p>`;
-      html += `<p><strong>Patient:</strong> ${patient}</p><p><strong>DOB:</strong> ${dob}</p><p><strong>Date of Service:</strong> ${dos}</p>`;
+      html += `<p><strong>Patient:</strong> ${patient}</p><p><strong>Date of Service:</strong> ${dos}</p>`;
       html += `<p class="section-title">Ordered Tests:</p>`;
       
       // Group tests by category
@@ -426,7 +652,23 @@
         html += `</ul>`;
       });
       
-      // Add patient-friendly test descriptions
+      if (follow) {
+        html += `<p><strong>Follow up in:</strong> ${follow}</p>`;
+        html += `<p style="margin-top:8px;"><strong>Appointment Date:</strong> ___________________________ <span style="font-size:12px;color:#666;">(Staff: Please write the exact date)</span></p>`;
+      }
+      if (refer) html += `<p><strong>Refer to:</strong> ${refer}</p>`;
+      if (instruct) html += `<p><strong>Instructions:</strong> ${instruct}</p>`;
+      html += `<div class="signature"><p>Dr. Humayun Naqvi, MD, MBA, FACC<br>West Houston Heart Center<br>Phone: 832-271-5897 | Fax: 1 (877) 669-0063<br><a href="https://www.htxheart.com">www.htxheart.com</a></p></div>`;
+      
+      // Add No Show Policy
+      html += `<div style="margin-top:20px;padding:15px;background:#fff3cd;border:2px solid #ffc107;border-radius:6px;page-break-inside:avoid;">`;
+      html += `<h3 style="color:#856404;margin-top:0;margin-bottom:10px;font-size:16px;">⚠️ No Show Policy</h3>`;
+      html += `<p style="font-size:13px;line-height:1.6;margin-bottom:0;color:#333;">Please be aware that <strong>not cancelling your appointment at least 24 hours (one business day) in advance</strong> will result in a <strong>no show fee</strong>. We appreciate your understanding as this helps us serve all our patients better by allowing us to offer your appointment time to others who need care.</p>`;
+      html += `<p style="font-size:13px;line-height:1.6;margin-top:10px;margin-bottom:0;color:#333;">To cancel or reschedule, please call us at <strong>832-271-5897</strong> at least 24 hours before your scheduled appointment.</p>`;
+      html += `</div>`;
+      html += `</div>`;
+      
+      // Add patient-friendly test descriptions after the After Visit Summary
       html += `<div style="margin-top:20px;padding:15px;background:#f9f9f9;border-left:4px solid #c00;border-radius:4px;">`;
       html += `<h2 style="color:#c00;margin-top:0;margin-bottom:12px;font-size:16px;">Understanding Your Tests</h2>`;
       html += `<p style="margin-bottom:12px;font-size:13px;line-height:1.6;">The following section explains each test that has been ordered for you in simple terms:</p>`;
@@ -468,22 +710,6 @@
         }
       });
       
-      html += `</div>`;
-      
-      if (follow) {
-        html += `<p><strong>Follow up in:</strong> ${follow}</p>`;
-        html += `<p style="margin-top:8px;"><strong>Appointment Date:</strong> ___________________________ <span style="font-size:12px;color:#666;">(Staff: Please write the exact date)</span></p>`;
-      }
-      if (refer) html += `<p><strong>Refer to:</strong> ${refer}</p>`;
-      if (instruct) html += `<p><strong>Instructions:</strong> ${instruct}</p>`;
-      html += `<div class="signature"><p>Dr. Humayun Naqvi, MD, MBA, FACC<br>West Houston Heart Center<br>Phone: 832-271-5897 | Fax: 1 (877) 669-0063<br><a href="https://www.htxheart.com">www.htxheart.com</a></p></div>`;
-      
-      // Add No Show Policy
-      html += `<div style="margin-top:20px;padding:15px;background:#fff3cd;border:2px solid #ffc107;border-radius:6px;page-break-inside:avoid;">`;
-      html += `<h3 style="color:#856404;margin-top:0;margin-bottom:10px;font-size:16px;">⚠️ No Show Policy</h3>`;
-      html += `<p style="font-size:13px;line-height:1.6;margin-bottom:0;color:#333;">Please be aware that <strong>not cancelling your appointment at least 24 hours (one business day) in advance</strong> will result in a <strong>no show fee</strong>. We appreciate your understanding as this helps us serve all our patients better by allowing us to offer your appointment time to others who need care.</p>`;
-      html += `<p style="font-size:13px;line-height:1.6;margin-top:10px;margin-bottom:0;color:#333;">To cancel or reschedule, please call us at <strong>832-271-5897</strong> at least 24 hours before your scheduled appointment.</p>`;
-      html += `</div>`;
       html += `</div>`;
       
       // Generate Mediterranean Diet Handout if checked - on separate page
@@ -764,139 +990,21 @@
         html += `</div>`;
       }
       
-      // Add page break before Staff To-Do List
-      if (selected.length > 0) {
-        html += `<div style="page-break-after: always;"></div>`;
-      }
-      
-      // Generate Staff To-Do List
-      if (selected.length > 0) {
-        html += `<h1>Follow up tasks - ${dos}</h1>`;
-        html += `<div class="todo-list">`;
-        html += `<div class="staff-header">Patient: ${patient} | DOB: ${dob} | Date of Service: ${dos}</div>`;
-        
-        // Group tests by category for better organization
-        const testsByCategory = {};
-        selected.forEach(box => {
-          const category = box.dataset.category;
-          if (!testsByCategory[category]) testsByCategory[category] = [];
-          testsByCategory[category].push(box);
-        });
-        
-        // Generate to-do items
-        Object.entries(testsByCategory).forEach(([category, boxes]) => {
-          boxes.forEach(box => {
-            let taskText = box.value;
-            let details = [];
-            
-            // Include days for MCT/Extended Holter
-            if (category === 'Monitoring Device' && /(Mobile Cardiac Telemetry|Extended Holter Monitor)/.test(box.value)) {
-              const inp = document.querySelector(`input[data-test="${box.value}"]`);
-              if (inp && inp.value) details.push(`${inp.value} days`);
-            }
-            
-            // Include duration for Ambulatory BP monitor
-            if (category === 'Monitoring Device' && box.value === 'Ambulatory Blood Pressure Monitor') {
-              const selBP = document.querySelector(`select[data-test="${box.value}"]`);
-              if (selBP && selBP.value) details.push(selBP.value);
-            }
-            
-            // Include location for Procedures
-            if (category === 'Procedures') {
-              const sel = document.querySelector(`select[data-test="${box.value}"]`);
-              if (sel && sel.value) details.push(`Location: ${sel.value}`);
-            }
-            
-            // Include imaging center for Out-of-Office Imaging
-            if (category === 'Out-of-Office Imaging') {
-              const sel = document.querySelector(`select[data-test="${box.value}"]`);
-              if (sel && sel.value) details.push(`Imaging Center: ${sel.value}`);
-              if (box.value === 'Other') {
-                const inp = document.querySelector(`input[data-test="${box.value}"]`);
-                if (inp && inp.value) details.push(`Imaging: ${inp.value}`);
-              }
-            }
-            
-            // Include lab details
-            if (box.value === 'Please order labs') {
-              const inp = document.querySelector(`input[data-test="${box.value}"]`);
-              if (inp && inp.value) details.push(`Labs: ${inp.value}`);
-            }
-            
-            // Include clinical trial details
-            if (box.value === 'Refer for Clinical Trial') {
-              const inp = document.querySelector(`input[data-test="${box.value}"]`);
-              if (inp && inp.value) details.push(`Trial: ${inp.value}`);
-            }
-            
-            html += `<div class="todo-item">`;
-            html += `<input type="checkbox" id="todo-${category}-${boxes.indexOf(box)}">`;
-            html += `<label for="todo-${category}-${boxes.indexOf(box)}">`;
-            html += `<div class="todo-category">${category}</div>`;
-            html += `<div class="todo-details"><strong>${taskText}</strong>`;
-            if (details.length > 0) {
-              html += ` - ${details.join(', ')}`;
-            }
-            html += `</div></label></div>`;
-          });
-        });
-        
-        // Add follow-up and referral reminders if applicable
-        if (follow) {
-          html += `<div class="todo-item">`;
-          html += `<input type="checkbox" id="todo-followup">`;
-          html += `<label for="todo-followup">`;
-          html += `<div class="todo-category">Follow-up</div>`;
-          html += `<div class="todo-details"><strong>Schedule follow-up visit:</strong> ${follow}</div>`;
-          html += `</label></div>`;
-        }
-        
-        if (refer) {
-          html += `<div class="todo-item">`;
-          html += `<input type="checkbox" id="todo-referral">`;
-          html += `<label for="todo-referral">`;
-          html += `<div class="todo-category">Referral</div>`;
-          html += `<div class="todo-details"><strong>Process referral to:</strong> ${refer}</div>`;
-          html += `</label></div>`;
-        }
-        
-        if (pcp) {
-          html += `<div class="todo-item">`;
-          html += `<input type="checkbox" id="todo-pcp">`;
-          html += `<label for="todo-pcp">`;
-          html += `<div class="todo-category">PCP Information</div>`;
-          html += `<div class="todo-details"><strong>Update PCP information</strong></div>`;
-          html += `</label></div>`;
-        }
-        
-        if (mediterraneanDiet) {
-          html += `<div class="todo-item">`;
-          html += `<input type="checkbox" id="todo-diet">`;
-          html += `<label for="todo-diet">`;
-          html += `<div class="todo-category">Patient Education</div>`;
-          html += `<div class="todo-details"><strong>Give Mediterranean Diet Info handout to patient</strong></div>`;
-          html += `</label></div>`;
-        }
-        
-        if (exerciseRegimen) {
-          html += `<div class="todo-item">`;
-          html += `<input type="checkbox" id="todo-exercise">`;
-          html += `<label for="todo-exercise">`;
-          html += `<div class="todo-category">Patient Education</div>`;
-          html += `<div class="todo-details"><strong>Give Exercise Regimen Info handout to patient</strong></div>`;
-          html += `</label></div>`;
-        }
-        
-        html += `</div>`;
-        html += `<div style="margin-top:16px;padding:8px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:13px;">`;
-        html += `<strong>Note:</strong> Please check off items as they are completed. Follow up on all ordered tests and ensure patient receives proper instructions.`;
-        html += `</div>`;
-      }
-      
       html += `</body></html>`;
       pw.document.write(html);
-      pw.document.close(); pw.focus(); pw.print();
+      pw.document.close();
+      pw.focus();
+      pw.print();
+      
+      // Clear form
+      document.getElementById('order-form').reset();
+      document.getElementById('dos').value = dosValue;
+      initAdminForm();
     });
+    
+    // Initialize app
+    initUsers();
+    showView();
   </script>
 </body>
 </html>

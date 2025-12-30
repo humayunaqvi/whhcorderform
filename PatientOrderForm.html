@@ -41,7 +41,6 @@
   <h1>Clinic Visit - Order Form</h1>
   <form id="order-form">
     <label>Patient Name:<input type="text" id="patient-name" required></label>
-    <label>Date of Birth:<input type="date" id="dob"></label>
     <label>Date of Service:<input type="date" id="dos" readonly></label>
     <div id="categories"></div>
     <label>Follow-up visit:<input type="text" id="followup" placeholder="e.g., 2 weeks"></label>
@@ -115,7 +114,6 @@
     // Generate Staff To-Do List HTML content
     function generateTodoListHTML() {
       const patient = document.getElementById('patient-name').value.trim();
-      const dob = formatDate(document.getElementById('dob').value);
       const dos = formatDate(document.getElementById('dos').value);
       const follow = document.getElementById('followup').value.trim();
       const refer = document.getElementById('referto').value.trim();
@@ -136,7 +134,7 @@
       html += `<div class="print-date">Generated: ${new Date().toLocaleString()}</div>`;
       html += `<h1>Follow up tasks - ${dos}</h1>`;
       html += `<div class="todo-list">`;
-      html += `<div class="staff-header">Patient: ${patient} | DOB: ${dob} | Date of Service: ${dos}</div>`;
+      html += `<div class="staff-header">Patient: ${patient} | Date of Service: ${dos}</div>`;
       
       // Group tests by category
       const testsByCategory = {};
@@ -343,7 +341,6 @@
     document.getElementById('order-form').addEventListener('submit', e => {
       e.preventDefault();
       const patient = document.getElementById('patient-name').value.trim();
-      const dob = formatDate(document.getElementById('dob').value);
       const dos = formatDate(document.getElementById('dos').value);
       const follow = document.getElementById('followup').value.trim();
       const refer = document.getElementById('referto').value.trim();
@@ -372,7 +369,7 @@
       html += `<h1>After Visit Summary</h1>`;
       html += `<p>Thank you for visiting West Houston Heart Center and trusting us with your care.</p>`;
       html += `<p style="margin-top:12px;">We have summarized all the tests ordered during your visit along with detailed descriptions to help you understand what each test involves. If you have any questions about your tests, results, or treatment plan, please don't hesitate to message us through the <strong>Healow portal</strong> or call our office directly at <strong>832-271-5897</strong>. We're here to help!</p>`;
-      html += `<p><strong>Patient:</strong> ${patient}</p><p><strong>DOB:</strong> ${dob}</p><p><strong>Date of Service:</strong> ${dos}</p>`;
+      html += `<p><strong>Patient:</strong> ${patient}</p><p><strong>Date of Service:</strong> ${dos}</p>`;
       html += `<p class="section-title">Ordered Tests:</p>`;
       
       // Group tests by category
@@ -773,7 +770,7 @@
       if (selected.length > 0) {
         html += `<h1>Follow up tasks - ${dos}</h1>`;
         html += `<div class="todo-list">`;
-        html += `<div class="staff-header">Patient: ${patient} | DOB: ${dob} | Date of Service: ${dos}</div>`;
+        html += `<div class="staff-header">Patient: ${patient} | Date of Service: ${dos}</div>`;
         
         // Group tests by category for better organization
         const testsByCategory = {};
