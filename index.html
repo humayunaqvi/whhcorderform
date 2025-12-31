@@ -186,6 +186,10 @@
     const TASKS_KEY = 'whhc_tasks';
     const SESSION_KEY = 'whhc_session';
     
+    // Store event handler references to prevent duplicates
+    let staffCheckboxHandler = null;
+    let trackerCheckboxHandler = null;
+    
     // Initialize default admin user if not exists
     function initUsers() {
       if (!localStorage.getItem(USERS_KEY)) {
@@ -428,6 +432,26 @@
         taskDateFilter.addEventListener('change', () => {
           loadTrackerTasks();
         });
+        
+        // Set up event delegation for checkboxes once
+        const trackerTasksContainer = document.getElementById('tracker-tasks-container');
+        // Remove old listener if it exists
+        if (trackerCheckboxHandler) {
+          trackerTasksContainer.removeEventListener('change', trackerCheckboxHandler);
+        }
+        // Create new handler
+        trackerCheckboxHandler = function(e) {
+          if (e.target.type === 'checkbox' && e.target.hasAttribute('data-task-id')) {
+            const taskId = e.target.getAttribute('data-task-id');
+            const completed = e.target.checked;
+            toggleTaskCompletion(taskId, completed);
+            // Refresh both dashboard and task list
+            updateTrackerDashboard();
+            loadTrackerTasks();
+          }
+        };
+        trackerTasksContainer.addEventListener('change', trackerCheckboxHandler);
+        
         loadTrackerTasks();
       }
     }
@@ -485,19 +509,6 @@
       });
       
       container.innerHTML = html;
-      
-      // Add event listener for checkboxes using event delegation
-      // Use a single listener on the container (event delegation handles dynamically added elements)
-      container.onchange = function(e) {
-        if (e.target.type === 'checkbox' && e.target.hasAttribute('data-task-id')) {
-          const taskId = e.target.getAttribute('data-task-id');
-          const completed = e.target.checked;
-          toggleTaskCompletion(taskId, completed);
-          // Refresh both dashboard and task list
-          updateTrackerDashboard();
-          loadTrackerTasks();
-        }
-      };
     }
     
     // Toggle user management section
@@ -686,6 +697,25 @@
         displayTasks(dateFilter.value);
       });
       
+      // Set up event delegation for checkboxes once
+      const tasksContainer = document.getElementById('tasks-container');
+      // Remove old listener if it exists
+      if (staffCheckboxHandler) {
+        tasksContainer.removeEventListener('change', staffCheckboxHandler);
+      }
+      // Create new handler
+      staffCheckboxHandler = function(e) {
+        if (e.target.type === 'checkbox' && e.target.hasAttribute('data-task-id')) {
+          const taskId = e.target.getAttribute('data-task-id');
+          const completed = e.target.checked;
+          toggleTaskCompletion(taskId, completed);
+          // Refresh the display
+          const currentDateStr = document.getElementById('task-date-filter').value;
+          displayTasks(currentDateStr);
+        }
+      };
+      tasksContainer.addEventListener('change', staffCheckboxHandler);
+      
       displayTasks(todayStr);
     }
     
@@ -731,19 +761,6 @@
       });
       
       container.innerHTML = html;
-      
-      // Add event listeners to all checkboxes using event delegation
-      // Use a single listener on the container (event delegation handles dynamically added elements)
-      container.onchange = function(e) {
-        if (e.target.type === 'checkbox' && e.target.hasAttribute('data-task-id')) {
-          const taskId = e.target.getAttribute('data-task-id');
-          const completed = e.target.checked;
-          toggleTaskCompletion(taskId, completed);
-          // Refresh the display
-          const currentDateStr = document.getElementById('task-date-filter').value;
-          displayTasks(currentDateStr);
-        }
-      };
     }
     
     // Print/Save all tasks for the selected date
