@@ -486,8 +486,9 @@
       
       container.innerHTML = html;
       
-      // Add event listener for checkboxes
-      container.addEventListener('change', function(e) {
+      // Add event listener for checkboxes using event delegation
+      // Use a single listener on the container (event delegation handles dynamically added elements)
+      container.onchange = function(e) {
         if (e.target.type === 'checkbox' && e.target.hasAttribute('data-task-id')) {
           const taskId = e.target.getAttribute('data-task-id');
           const completed = e.target.checked;
@@ -496,7 +497,7 @@
           updateTrackerDashboard();
           loadTrackerTasks();
         }
-      });
+      };
     }
     
     // Toggle user management section
@@ -668,10 +669,6 @@
       if (task) {
         task.completed = completed;
         localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
-        
-        // Update the display without reloading
-        const dateStr = document.getElementById('task-date-filter').value;
-        displayTasks(dateStr);
       }
     }
     
@@ -736,13 +733,17 @@
       container.innerHTML = html;
       
       // Add event listeners to all checkboxes using event delegation
-      container.addEventListener('change', function(e) {
+      // Use a single listener on the container (event delegation handles dynamically added elements)
+      container.onchange = function(e) {
         if (e.target.type === 'checkbox' && e.target.hasAttribute('data-task-id')) {
           const taskId = e.target.getAttribute('data-task-id');
           const completed = e.target.checked;
           toggleTaskCompletion(taskId, completed);
+          // Refresh the display
+          const currentDateStr = document.getElementById('task-date-filter').value;
+          displayTasks(currentDateStr);
         }
-      });
+      };
     }
     
     // Print/Save all tasks for the selected date
