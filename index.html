@@ -185,36 +185,81 @@
 
   <script>
     // Firebase Configuration
-    // TODO: Replace with your Firebase project configuration
-    // Get this from: Firebase Console > Project Settings > General > Your apps > Web app
-    // See FIREBASE_SETUP.md for detailed instructions
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyD1TVMfNmh1kONRsXRSW_hyuqgvT4eqfxg",
+      authDomain: "whhcorderform.firebaseapp.com",
+      databaseURL: "https://whhcorderform-default-rtdb.firebaseio.com",
+      projectId: "whhcorderform",
+      storageBucket: "whhcorderform.firebasestorage.app",
+      messagingSenderId: "998553620096",
+      appId: "1:998553620096:web:ffd5ab75680d61d7cf6065"
     };
     
     // Initialize Firebase (with fallback to localStorage if not configured)
     let database = null;
     let useFirebase = false;
     
-    try {
-      if (typeof firebase !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
-        firebase.initializeApp(firebaseConfig);
-        database = firebase.database();
-        useFirebase = true;
-        console.log('Firebase initialized successfully');
-      } else {
-        console.warn('Firebase not configured. Using localStorage fallback. See FIREBASE_SETUP.md for setup instructions.');
+    // Initialize Firebase - wait for scripts to load
+    function initializeFirebase() {
+      try {
+        // Check if Firebase is loaded and config is valid
+        if (typeof firebase !== 'undefined' && 
+            firebaseConfig.apiKey && 
+            firebaseConfig.apiKey !== "YOUR_API_KEY" &&
+            firebaseConfig.databaseURL) {
+          firebase.initializeApp(firebaseConfig);
+          database = firebase.database();
+          useFirebase = true;
+          console.log('✅ Firebase initialized successfully');
+        } else {
+          if (typeof firebase === 'undefined') {
+            console.warn('⚠️ Firebase SDK not loaded. Check if scripts are loading correctly. Using localStorage fallback.');
+          } else if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY") {
+            console.warn('⚠️ Firebase API key not configured. Using localStorage fallback.');
+          } else {
+            console.warn('⚠️ Firebase configuration incomplete. Using localStorage fallback.');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Firebase initialization error:', error);
+        console.warn('Falling back to localStorage');
       }
-    } catch (error) {
-      console.error('Firebase initialization error:', error);
-      console.warn('Falling back to localStorage');
     }
+    
+    // Wait for Firebase scripts to load
+    function tryInitializeFirebase() {
+      console.log('Checking Firebase availability...', typeof firebase);
+      console.log('Firebase config:', firebaseConfig.apiKey ? 'API key present' : 'API key missing');
+      
+      if (typeof firebase !== 'undefined') {
+        // Firebase already loaded
+        initializeFirebase();
+      } else {
+        // Wait for window load event, then try again
+        if (document.readyState === 'complete') {
+          // Page already loaded, wait a bit more for scripts
+          setTimeout(function() {
+            if (typeof firebase !== 'undefined') {
+              initializeFirebase();
+            } else {
+              console.warn('⚠️ Firebase SDK failed to load after page load. Using localStorage fallback.');
+            }
+          }, 500);
+        } else {
+          window.addEventListener('load', function() {
+            setTimeout(function() {
+              if (typeof firebase !== 'undefined') {
+                initializeFirebase();
+              } else {
+                console.warn('⚠️ Firebase SDK failed to load. Using localStorage fallback.');
+              }
+            }, 500);
+          });
+        }
+      }
+    }
+    
+    tryInitializeFirebase();
     
     // Authentication and User Management
     const USERS_KEY = 'whhc_users';
