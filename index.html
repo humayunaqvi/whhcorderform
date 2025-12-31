@@ -514,9 +514,12 @@
     });
     
     // Save task to Firebase or localStorage
+    let taskCounter = 0;
     function saveTask(taskData) {
+      // Generate unique ID with timestamp, counter, and random component to prevent collisions
+      const uniqueId = Date.now().toString() + '-' + (taskCounter++).toString().padStart(4, '0') + '-' + Math.random().toString(36).substr(2, 5);
       const task = {
-        id: Date.now().toString(),
+        id: uniqueId,
         ...taskData,
         createdAt: new Date().toISOString(),
         completed: false
