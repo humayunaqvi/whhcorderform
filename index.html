@@ -83,6 +83,15 @@
     /* Mobile Responsive Styles */
     @media (max-width: 768px) {
       body { padding: 5px; font-size: 16px; }
+      * { box-sizing: border-box; }
+      
+      /* Ensure all buttons and inputs are properly sized */
+      button, input, select, textarea { 
+        box-sizing: border-box;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+      }
       
       /* Login Page Mobile */
       #login-page { max-width: 100%; margin: 20px auto; padding: 20px 15px; }
@@ -93,12 +102,12 @@
       
       /* Admin View Mobile */
       #admin-view { max-width: 100%; padding: 15px 10px; margin: 0; }
-      #admin-view h1 { font-size: 22px; margin-bottom: 15px; }
+      #admin-view h1 { font-size: 22px; margin-bottom: 15px; text-align: center; }
       .logout-btn { float: none; display: block; width: 100%; margin-bottom: 15px; padding: 12px; font-size: 16px; }
       form { margin-top: 15px; }
-      label { flex-direction: column; align-items: flex-start; margin: 10px 0; }
-      label > input, label > textarea, label > select { margin-left: 0; margin-top: 5px; width: 100%; font-size: 16px; padding: 10px; }
-      label > input[type="checkbox"] { margin-right: 8px; margin-top: 0; width: 20px; height: 20px; }
+      label { flex-direction: column; align-items: flex-start; margin: 10px 0; display: flex; }
+      label > input, label > textarea, label > select { margin-left: 0; margin-top: 5px; width: 100%; font-size: 16px; padding: 10px; box-sizing: border-box; }
+      label > input[type="checkbox"] { margin-right: 8px; margin-top: 0; width: 20px; height: 20px; flex-shrink: 0; }
       #categories fieldset { padding: 10px; margin-bottom: 15px; }
       #categories div { flex-direction: column; align-items: flex-start; margin: 8px 0; }
       #categories div input[type="number"], 
@@ -108,41 +117,58 @@
       
       /* Staff Dashboard Mobile */
       #staff-view { max-width: 100%; padding: 15px 10px; margin: 0; }
-      #staff-view h1 { font-size: 22px; }
-      .date-filter { margin-bottom: 15px; }
-      .date-filter label { display: block; width: 100%; margin-bottom: 10px; }
-      .date-filter input { font-size: 16px; padding: 10px; width: 100%; margin-bottom: 10px; }
-      .date-filter button { width: 100%; padding: 12px; font-size: 16px; margin: 5px 0; }
-      .print-btn, .download-btn { width: 100% !important; padding: 12px !important; font-size: 16px !important; margin: 5px 0 !important; margin-left: 0 !important; }
+      #staff-view h1 { font-size: 22px; text-align: center; }
+      .date-filter { margin-bottom: 15px; text-align: left; }
+      .date-filter label { display: block; width: 100%; margin-bottom: 10px; flex-direction: column; align-items: flex-start; }
+      .date-filter label > input { margin-left: 0; margin-top: 5px; width: 100%; }
+      .date-filter input { font-size: 16px; padding: 10px; width: 100%; margin-bottom: 10px; display: block; }
+      .date-filter button { width: 100%; padding: 12px; font-size: 16px; margin: 5px 0; display: block; }
+      .print-btn, .download-btn { 
+        width: 100% !important; 
+        padding: 12px !important; 
+        font-size: 16px !important; 
+        margin: 8px 0 !important; 
+        margin-left: 0 !important;
+        display: block !important;
+        box-sizing: border-box !important;
+      }
       .task-card { padding: 12px; margin-bottom: 12px; }
       .task-header { padding: 12px; font-size: 14px; }
-      .task-item { padding: 10px; margin: 8px 0; }
-      .task-item input[type="checkbox"] { width: 22px; height: 22px; margin-right: 12px; }
-      .task-category { font-size: 14px; }
-      .task-details { font-size: 13px; margin-left: 34px; }
+      .task-item { padding: 10px; margin: 8px 0; display: flex; align-items: flex-start; }
+      .task-item input[type="checkbox"] { width: 22px; height: 22px; margin-right: 12px; flex-shrink: 0; margin-top: 3px; }
+      .task-category { font-size: 14px; display: block; }
+      .task-details { font-size: 13px; margin-left: 0; display: block; }
       
       /* Tracker Dashboard Mobile */
       #tracker-view { max-width: 100%; padding: 15px 10px; margin: 0; }
-      #tracker-view h1 { font-size: 22px; }
-      .dashboard-controls { margin-bottom: 15px; }
-      .dashboard-controls input { font-size: 16px; padding: 10px; width: 100%; margin-bottom: 10px; }
-      .dashboard-controls button { width: 100%; padding: 12px; font-size: 16px; margin: 5px 0; }
+      #tracker-view h1 { font-size: 22px; text-align: center; }
+      .dashboard-controls { margin-bottom: 15px; text-align: left; }
+      .dashboard-controls label { display: block; width: 100%; margin-bottom: 10px; flex-direction: column; align-items: flex-start; }
+      .dashboard-controls label > input { margin-left: 0; margin-top: 5px; width: 100%; }
+      .dashboard-controls input { font-size: 16px; padding: 10px; width: 100%; margin-bottom: 10px; display: block; }
+      .dashboard-controls button { width: 100%; padding: 12px; font-size: 16px; margin: 8px 0; display: block; }
       .stats-container { flex-direction: column; gap: 15px; }
       .stats-box { width: 100%; min-width: auto; }
       .pie-chart-container { width: 200px; height: 200px; }
       
       /* User Management Mobile */
       #user-management-section { padding: 15px; margin: 15px 0; }
-      #user-management-section button { width: 100%; padding: 12px; font-size: 16px; margin-bottom: 10px; }
+      #user-management-section h2 { text-align: center; }
+      #user-management-section button { width: 100%; padding: 12px; font-size: 16px; margin-bottom: 10px; display: block; box-sizing: border-box; }
       #user-management-content { margin-top: 15px; }
-      #user-management-content input { font-size: 16px; padding: 10px; width: 100%; margin-bottom: 10px; }
-      #user-management-content button { width: 100%; padding: 12px; font-size: 16px; }
+      #user-management-content h3 { text-align: left; }
+      #user-management-content input { font-size: 16px; padding: 10px; width: 100%; margin-bottom: 10px; display: block; box-sizing: border-box; }
+      #user-management-content button { width: 100%; padding: 12px; font-size: 16px; display: block; box-sizing: border-box; margin: 5px 0; }
+      #user-management-content > div { display: flex; flex-direction: column; gap: 10px; }
+      #user-management-content > div > div { display: flex; flex-direction: column; gap: 10px; }
       
       /* Task Checklist Management Mobile */
       #tracker-tasks-container .task-card { padding: 12px; }
-      #tracker-tasks-container .task-header { padding: 12px; font-size: 14px; }
-      #tracker-tasks-container .task-item { padding: 10px; }
-      #tracker-tasks-container .task-item input[type="checkbox"] { width: 22px; height: 22px; }
+      #tracker-tasks-container .task-header { padding: 12px; font-size: 14px; text-align: center; }
+      #tracker-tasks-container .task-item { padding: 10px; display: flex; align-items: flex-start; }
+      #tracker-tasks-container .task-item input[type="checkbox"] { width: 22px; height: 22px; flex-shrink: 0; margin-right: 12px; margin-top: 3px; }
+      #tracker-tasks-container .task-category { display: block; }
+      #tracker-tasks-container .task-details { margin-left: 0; display: block; }
     }
     
     /* Extra Small Devices (phones in portrait) */
