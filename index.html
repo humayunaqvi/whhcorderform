@@ -124,8 +124,8 @@
     <button class="logout-btn" onclick="logout()">Logout</button>
     <h1>Task Monitoring Dashboard</h1>
     
-    <!-- User Management Section -->
-    <div style="margin: 20px 0; padding: 20px; background: #f9f9f9; border-radius: 8px; border: 2px solid #0066cc;">
+    <!-- User Management Section (only for tracker role) -->
+    <div id="user-management-section" style="margin: 20px 0; padding: 20px; background: #f9f9f9; border-radius: 8px; border: 2px solid #0066cc;">
       <h2 style="color: #0066cc; margin-top: 0; margin-bottom: 15px; text-align: center;">User Management</h2>
       <button onclick="toggleUserManagement()" style="padding: 8px 15px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-bottom: 15px;">Manage Staff Accounts</button>
       <div id="user-management-content" style="display: none;">
@@ -191,7 +191,8 @@
       if (!localStorage.getItem(USERS_KEY)) {
         const defaultUsers = {
           'hnaqvi': { password: 'Whhc1140!!', role: 'admin' },
-          'htxadmin': { password: 'Whhc11421!!', role: 'tracker' },
+          'whhcadmin': { password: 'Whhc11421!!', role: 'tracker' },
+          'whhcclinical': { password: 'clinical123', role: 'clinical' },
           'staff1': { password: 'staff123', role: 'staff' },
           'staff2': { password: 'staff123', role: 'staff' }
         };
@@ -209,8 +210,10 @@
         if (users['tasktracker']) {
           delete users['tasktracker'];
         }
-        // Add or update htxadmin user
-        users['htxadmin'] = { password: 'Whhc11421!!', role: 'tracker' };
+        // Add or update whhcadmin user
+        users['whhcadmin'] = { password: 'Whhc11421!!', role: 'tracker' };
+        // Add or update whhcclinical user
+        users['whhcclinical'] = { password: 'clinical123', role: 'clinical' };
         localStorage.setItem(USERS_KEY, JSON.stringify(users));
       }
     }
@@ -274,11 +277,11 @@
         document.getElementById('staff-view').style.display = 'none';
         document.getElementById('tracker-view').style.display = 'none';
         initAdminForm();
-      } else if (session.role === 'tracker') {
+      } else if (session.role === 'tracker' || session.role === 'clinical') {
         document.getElementById('admin-view').style.display = 'none';
         document.getElementById('staff-view').style.display = 'none';
         document.getElementById('tracker-view').style.display = 'block';
-        initTrackerDashboard();
+        initTrackerDashboard(session.role);
       } else {
         document.getElementById('admin-view').style.display = 'none';
         document.getElementById('staff-view').style.display = 'block';
@@ -391,12 +394,23 @@
     }
     
     // Initialize tracker dashboard
-    function initTrackerDashboard() {
+    function initTrackerDashboard(userRole) {
       const today = new Date();
       const year = today.getFullYear();
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
       const todayStr = `${year}-${month}-${day}`;
+      
+      // Show/hide user management based on role
+      const userManagementSection = document.getElementById('user-management-section');
+      if (userManagementSection) {
+        if (userRole === 'tracker') {
+          userManagementSection.style.display = 'block';
+          loadStaffUsers();
+        } else {
+          userManagementSection.style.display = 'none';
+        }
+      }
       
       const dateFilter = document.getElementById('tracker-date-filter');
       if (dateFilter) {
@@ -416,9 +430,6 @@
         });
         loadTrackerTasks();
       }
-      
-      // Load staff users list
-      loadStaffUsers();
     }
     
     // Load and display tasks for tracker view (with ability to manage)
