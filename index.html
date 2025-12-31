@@ -5,6 +5,9 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>West Houston Heart Center - Order System</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { font-family: Arial, sans-serif; margin: 0; padding: 10px; color: #333; background: #f5f5f5; }
@@ -181,6 +184,38 @@
   </div>
 
   <script>
+    // Firebase Configuration
+    // TODO: Replace with your Firebase project configuration
+    // Get this from: Firebase Console > Project Settings > General > Your apps > Web app
+    // See FIREBASE_SETUP.md for detailed instructions
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    
+    // Initialize Firebase (with fallback to localStorage if not configured)
+    let database = null;
+    let useFirebase = false;
+    
+    try {
+      if (typeof firebase !== 'undefined' && firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+        useFirebase = true;
+        console.log('Firebase initialized successfully');
+      } else {
+        console.warn('Firebase not configured. Using localStorage fallback. See FIREBASE_SETUP.md for setup instructions.');
+      }
+    } catch (error) {
+      console.error('Firebase initialization error:', error);
+      console.warn('Falling back to localStorage');
+    }
+    
     // Authentication and User Management
     const USERS_KEY = 'whhc_users';
     const TASKS_KEY = 'whhc_tasks';
@@ -189,6 +224,10 @@
     // Store event handler references to prevent duplicates
     let staffCheckboxHandler = null;
     let trackerCheckboxHandler = null;
+    
+    // Firebase real-time listeners
+    let tasksListener = null;
+    let usersListener = null;
     
     // Initialize default admin user if not exists
     function initUsers() {
@@ -318,23 +357,91 @@
       }
     });
     
-    // Save task to localStorage
+    // Save task to Firebase or localStorage
     function saveTask(taskData) {
-      const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
       const task = {
         id: Date.now().toString(),
         ...taskData,
         createdAt: new Date().toISOString(),
         completed: false
       };
-      tasks.push(task);
-      localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+      
+      if (useFirebase && database) {
+        // Save to Firebase Realtime Database
+        database.ref('tasks/' + task.id).set(task)
+          .catch(error => {
+            console.error('Error saving task:', error);
+            alert('Error saving task. Please try again.');
+          });
+      } else {
+        // Fallback to localStorage
+        const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+        tasks.push(task);
+        localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+      }
     }
     
-    // Get tasks for a specific date
+    // Get tasks for a specific date (synchronous version for immediate use)
+    // Get tasks for a specific date (synchronous version - returns cached data)
+    let cachedTasks = {};
     function getTasksForDate(dateStr) {
-      const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
-      return tasks.filter(task => task.dateOfService === dateStr);
+      if (useFirebase) {
+        return cachedTasks[dateStr] || [];
+      } else {
+        // Fallback to localStorage
+        const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+        return tasks.filter(task => task.dateOfService === dateStr);
+      }
+    }
+    
+    // Get tasks for a specific date from Firebase (async)
+    function getTasksForDateAsync(dateStr, callback) {
+      if (useFirebase && database) {
+        database.ref('tasks').orderByChild('dateOfService').equalTo(dateStr).once('value')
+          .then(snapshot => {
+            const tasks = [];
+            snapshot.forEach(child => {
+              tasks.push(child.val());
+            });
+            cachedTasks[dateStr] = tasks;
+            callback(tasks);
+          })
+          .catch(error => {
+            console.error('Error fetching tasks:', error);
+            callback([]);
+          });
+      } else {
+        // Fallback to localStorage
+        const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+        const filteredTasks = tasks.filter(task => task.dateOfService === dateStr);
+        callback(filteredTasks);
+      }
+    }
+    
+    // Set up real-time listener for tasks
+    function setupTasksListener(dateStr, callback) {
+      if (useFirebase && database) {
+        // Remove existing listener if any
+        if (tasksListener) {
+          database.ref('tasks').off('value', tasksListener);
+        }
+        
+        // Set up new listener
+        tasksListener = database.ref('tasks')
+          .orderByChild('dateOfService')
+          .equalTo(dateStr)
+          .on('value', snapshot => {
+            const tasks = [];
+            snapshot.forEach(child => {
+              tasks.push(child.val());
+            });
+            cachedTasks[dateStr] = tasks;
+            callback(tasks);
+          });
+      } else {
+        // Fallback: just load once from localStorage
+        getTasksForDateAsync(dateStr, callback);
+      }
     }
     
     // Get all tasks (for admin dashboard)
@@ -343,12 +450,13 @@
     }
     
     // Calculate task statistics for a date
-    function calculateTaskStats(dateStr) {
-      const tasks = getTasksForDate(dateStr);
-      const total = tasks.length;
-      const completed = tasks.filter(t => t.completed).length;
-      const pending = total - completed;
-      return { total, completed, pending };
+    function calculateTaskStats(dateStr, callback) {
+      getTasksForDateAsync(dateStr, (tasks) => {
+        const total = tasks.length;
+        const completed = tasks.filter(t => t.completed).length;
+        const pending = total - completed;
+        callback({ total, completed, pending });
+      });
     }
     
     // Create SVG pie chart
@@ -469,46 +577,12 @@
         return;
       }
       
-      const tasks = getTasksForDate(dateStr);
       const container = document.getElementById('tracker-tasks-container');
       
-      if (tasks.length === 0) {
-        container.innerHTML = '<div class="no-tasks">No tasks found for this date.</div>';
-        return;
-      }
-      
-      // Group tasks by patient
-      const tasksByPatient = {};
-      tasks.forEach(task => {
-        if (!tasksByPatient[task.patientName]) {
-          tasksByPatient[task.patientName] = [];
-        }
-        tasksByPatient[task.patientName].push(task);
+      // Set up real-time listener for this date
+      setupTasksListener(dateStr, (tasks) => {
+        renderTasks(tasks, dateStr, container, 'handleTrackerCheckbox');
       });
-      
-      let html = '';
-      Object.entries(tasksByPatient).forEach(([patientName, patientTasks]) => {
-        html += `<div class="task-card">`;
-        html += `<div class="task-header">Patient: ${patientName} | Date of Service: ${formatDate(dateStr)}</div>`;
-        
-        patientTasks.forEach((task, index) => {
-          html += `<div class="task-item ${task.completed ? 'completed' : ''}">`;
-          html += `<input type="checkbox" id="tracker-task-${task.id}-${index}" data-task-id="${task.id}" ${task.completed ? 'checked' : ''}>`;
-          html += `<div style="flex: 1;">`;
-          html += `<div class="task-category">${task.category}</div>`;
-          html += `<div class="task-details"><strong>${task.taskText}</strong>`;
-          if (task.details && task.details.length > 0) {
-            html += ` - ${task.details.join(', ')}`;
-          }
-          html += `</div>`;
-          html += `</div>`;
-          html += `</div>`;
-        });
-        
-        html += `</div>`;
-      });
-      
-      container.innerHTML = html;
     }
     
     // Toggle user management section
@@ -633,8 +707,13 @@
         return;
       }
       
-      const stats = calculateTaskStats(dateStr);
       const container = document.getElementById('tracker-dashboard-content');
+      calculateTaskStats(dateStr, (stats) => {
+        renderTrackerDashboard(stats, container, dateStr);
+      });
+    }
+    
+    function renderTrackerDashboard(stats, container, dateStr) {
       
       let html = `<div class="stats-container">`;
       
@@ -673,14 +752,43 @@
       createPieChart(stats.completed, stats.pending, 'pie-chart');
     }
     
-    // Update task completion status
+    // Update task completion status in Firebase or localStorage
     function toggleTaskCompletion(taskId, completed) {
-      const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        task.completed = completed;
-        localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+      if (useFirebase && database) {
+        database.ref('tasks/' + taskId + '/completed').set(completed)
+          .catch(error => {
+            console.error('Error updating task:', error);
+            alert('Error updating task. Please try again.');
+          });
+      } else {
+        // Fallback to localStorage
+        const tasks = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
+        const task = tasks.find(t => t.id === taskId);
+        if (task) {
+          task.completed = completed;
+          localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+        }
       }
+    }
+    
+    // Handle checkbox change for staff view
+    function handleTaskCheckbox(checkbox) {
+      const taskId = checkbox.getAttribute('data-task-id');
+      const completed = checkbox.checked;
+      toggleTaskCompletion(taskId, completed);
+      // Refresh the display
+      const currentDateStr = document.getElementById('task-date-filter').value;
+      displayTasks(currentDateStr);
+    }
+    
+    // Handle checkbox change for tracker/clinical view
+    function handleTrackerCheckbox(checkbox) {
+      const taskId = checkbox.getAttribute('data-task-id');
+      const completed = checkbox.checked;
+      toggleTaskCompletion(taskId, completed);
+      // Refresh both dashboard and task list
+      updateTrackerDashboard();
+      loadTrackerTasks();
     }
     
     // Initialize staff dashboard
@@ -719,11 +827,8 @@
       displayTasks(todayStr);
     }
     
-    // Display tasks for a date
-    function displayTasks(dateStr) {
-      const tasks = getTasksForDate(dateStr);
-      const container = document.getElementById('tasks-container');
-      
+    // Render tasks to container (reusable function)
+    function renderTasks(tasks, dateStr, container, checkboxHandler = 'handleTaskCheckbox') {
       if (tasks.length === 0) {
         container.innerHTML = '<div class="no-tasks">No tasks found for this date.</div>';
         return;
@@ -745,7 +850,7 @@
         
         patientTasks.forEach((task, index) => {
           html += `<div class="task-item ${task.completed ? 'completed' : ''}">`;
-          html += `<input type="checkbox" id="task-${task.id}-${index}" data-task-id="${task.id}" ${task.completed ? 'checked' : ''}>`;
+          html += `<input type="checkbox" id="task-${task.id}-${index}" data-task-id="${task.id}" ${task.completed ? 'checked' : ''} onchange="${checkboxHandler}(this)">`;
           html += `<div style="flex: 1;">`;
           html += `<div class="task-category">${task.category}</div>`;
           html += `<div class="task-details"><strong>${task.taskText}</strong>`;
@@ -763,15 +868,29 @@
       container.innerHTML = html;
     }
     
+    // Display tasks for a date (staff view)
+    function displayTasks(dateStr) {
+      const container = document.getElementById('tasks-container');
+      
+      // Set up real-time listener for this date
+      setupTasksListener(dateStr, (tasks) => {
+        renderTasks(tasks, dateStr, container, 'handleTaskCheckbox');
+      });
+    }
+    
     // Print/Save all tasks for the selected date
     function printAllTasks() {
       const dateStr = document.getElementById('task-date-filter').value;
-      const tasks = getTasksForDate(dateStr);
-      
-      if (tasks.length === 0) {
-        alert('No tasks found for this date.');
-        return;
-      }
+      getTasksForDateAsync(dateStr, (tasks) => {
+        if (tasks.length === 0) {
+          alert('No tasks found for this date.');
+          return;
+        }
+        printTasksHTML(tasks, dateStr);
+      });
+    }
+    
+    function printTasksHTML(tasks, dateStr) {
       
       // Group tasks by patient
       const tasksByPatient = {};
@@ -859,12 +978,16 @@
     // Download all tasks as HTML file
     function downloadAllTasks() {
       const dateStr = document.getElementById('task-date-filter').value;
-      const tasks = getTasksForDate(dateStr);
-      
-      if (tasks.length === 0) {
-        alert('No tasks found for this date.');
-        return;
-      }
+      getTasksForDateAsync(dateStr, (tasks) => {
+        if (tasks.length === 0) {
+          alert('No tasks found for this date.');
+          return;
+        }
+        downloadTasksHTML(tasks, dateStr);
+      });
+    }
+    
+    function downloadTasksHTML(tasks, dateStr) {
       
       // Group tasks by patient
       const tasksByPatient = {};
