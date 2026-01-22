@@ -1399,12 +1399,7 @@
       const instruct = document.getElementById('instructions').value.trim();
       const selected = document.querySelectorAll('input[name="tests"]:checked');
       
-      if (selected.length === 0) {
-        showStatus('No tests selected. Please select at least one test.', 'error');
-        return;
-      }
-      
-      // Save tasks to localStorage
+      // Save tasks to localStorage (only if tests are selected)
       const tasksByCategory = {};
       selected.forEach(box => {
         const category = box.dataset.category;
@@ -1533,7 +1528,11 @@
       html += `<div class="no-break">`;
       html += `<h1>After Visit Summary</h1>`;
       html += `<p>Thank you for visiting West Houston Heart Center and trusting us with your care.</p>`;
-      html += `<p style="margin-top:12px;">We have summarized all the tests ordered during your visit along with detailed descriptions to help you understand what each test involves. If you have any questions about your tests, results, or treatment plan, please don't hesitate to message us through the <strong>Healow portal</strong> or call our office directly at <strong>832-271-5897</strong>. We're here to help!</p>`;
+      if (selected.length > 0) {
+        html += `<p style="margin-top:12px;">We have summarized all the tests ordered during your visit along with detailed descriptions to help you understand what each test involves. If you have any questions about your tests, results, or treatment plan, please don't hesitate to message us through the <strong>Healow portal</strong> or call our office directly at <strong>832-271-5897</strong>. We're here to help!</p>`;
+      } else {
+        html += `<p style="margin-top:12px;">If you have any questions about your visit, results, or treatment plan, please don't hesitate to message us through the <strong>Healow portal</strong> or call our office directly at <strong>832-271-5897</strong>. We're here to help!</p>`;
+      }
       html += `<p><strong>Patient:</strong> ${patient}</p><p><strong>Date of Service:</strong> ${dos}</p>`;
       html += `<p class="section-title">Ordered Tests:</p>`;
       
@@ -1546,7 +1545,10 @@
       });
       
       // Display tests grouped by category
-      Object.entries(testsByCategory).forEach(([category, boxes]) => {
+      if (Object.keys(testsByCategory).length === 0) {
+        html += `<p><em>No tests were ordered during this visit.</em></p>`;
+      } else {
+        Object.entries(testsByCategory).forEach(([category, boxes]) => {
         html += `<h3 style="color:#c00;margin-top:15px;margin-bottom:8px;font-size:15px;font-weight:bold;">${category}:</h3>`;
         html += `<ul>`;
         boxes.forEach(box => {
@@ -1587,6 +1589,7 @@
         });
         html += `</ul>`;
       });
+      }
       
       if (follow) {
         html += `<p><strong>Follow up in:</strong> ${follow}</p>`;
@@ -1604,12 +1607,13 @@
       html += `</div>`;
       html += `</div>`;
       
-      // Add patient-friendly test descriptions after the After Visit Summary
-      html += `<div style="margin-top:20px;padding:15px;background:#f9f9f9;border-left:4px solid #c00;border-radius:4px;">`;
-      html += `<h2 style="color:#c00;margin-top:0;margin-bottom:12px;font-size:16px;">Understanding Your Tests</h2>`;
-      html += `<p style="margin-bottom:12px;font-size:13px;line-height:1.6;">The following section explains each test that has been ordered for you in simple terms:</p>`;
-      
-      selected.forEach(box => {
+      // Add patient-friendly test descriptions after the After Visit Summary (only if tests were ordered)
+      if (selected.length > 0) {
+        html += `<div style="margin-top:20px;padding:15px;background:#f9f9f9;border-left:4px solid #c00;border-radius:4px;">`;
+        html += `<h2 style="color:#c00;margin-top:0;margin-bottom:12px;font-size:16px;">Understanding Your Tests</h2>`;
+        html += `<p style="margin-bottom:12px;font-size:13px;line-height:1.6;">The following section explains each test that has been ordered for you in simple terms:</p>`;
+        
+        selected.forEach(box => {
         let testName = box.value;
         let description = TEST_DESCRIPTIONS[testName];
         
@@ -1647,6 +1651,7 @@
       });
       
       html += `</div>`;
+      }
       
       // Generate Mediterranean Diet Handout if checked - on separate page
       if (mediterraneanDiet) {
