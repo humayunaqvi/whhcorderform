@@ -92,9 +92,21 @@ export default function TasksPage() {
           ) : (
             Object.entries(byPatient).map(([patient, patientTasks]) => (
               <div key={patient} className="card">
-                <h3 className="text-lg font-semibold text-primary-400 mb-3 pb-2 border-b border-gray-800">
-                  {patient}
-                </h3>
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-800">
+                  <h3 className="text-lg font-semibold text-primary-400">
+                    {patient}
+                  </h3>
+                  {patientTasks[0]?.orderId && (
+                    <a
+                      href={`/orders/summary?id=${patientTasks[0].orderId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded transition-colors no-print"
+                    >
+                      Print AVS
+                    </a>
+                  )}
+                </div>
                 <div className="space-y-1">
                   {patientTasks.map(task => (
                     <label
