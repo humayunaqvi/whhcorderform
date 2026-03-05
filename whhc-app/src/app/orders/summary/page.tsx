@@ -107,7 +107,12 @@ function OrderSummaryContent() {
         {/* Action bar — hidden in print */}
         <div className="no-print flex gap-3 p-4 bg-gray-100 border-b sticky top-0 z-10">
           <button
-            onClick={() => router.push('/orders')}
+            onClick={() => {
+              // Summary opens in a new tab (target="_blank"), so close it.
+              // If window.close() is blocked (e.g. not opened by script), fall back to navigation.
+              window.close();
+              router.push('/orders');
+            }}
             className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
           >
             Back to Orders
