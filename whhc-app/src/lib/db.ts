@@ -55,6 +55,9 @@ export function onOrdersChange(date: string, callback: (orders: Order[]) => void
     if (!snap.exists()) { callback([]); return; }
     const all = snap.val() as Record<string, Order>;
     callback(Object.values(all).filter(o => o.dateOfService === date));
+  }, (error) => {
+    console.error('Firebase orders read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -91,6 +94,9 @@ export function onTasksChange(date: string, callback: (tasks: Task[]) => void): 
     if (!snap.exists()) { callback([]); return; }
     const all = snap.val() as Record<string, Task>;
     callback(Object.values(all).filter(t => t.dateOfService === date));
+  }, (error) => {
+    console.error('Firebase tasks read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -134,6 +140,9 @@ export function onDevicesChange(callback: (devices: Device[]) => void): () => vo
   const unsub = onValue(dbRef('devices'), (snap) => {
     if (!snap.exists()) { callback([]); return; }
     callback(Object.values(snap.val() as Record<string, Device>));
+  }, (error) => {
+    console.error('Firebase devices read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -193,6 +202,9 @@ export function onAssignmentsChange(callback: (assignments: DeviceAssignment[]) 
   const unsub = onValue(dbRef('assignments'), (snap) => {
     if (!snap.exists()) { callback([]); return; }
     callback(Object.values(snap.val() as Record<string, DeviceAssignment>));
+  }, (error) => {
+    console.error('Firebase assignments read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -230,6 +242,9 @@ export function onWaitlistChange(callback: (entries: WaitlistEntry[]) => void): 
   const unsub = onValue(dbRef('waitlist'), (snap) => {
     if (!snap.exists()) { callback([]); return; }
     callback(Object.values(snap.val() as Record<string, WaitlistEntry>).sort((a, b) => a.position - b.position));
+  }, (error) => {
+    console.error('Firebase waitlist read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -328,6 +343,9 @@ export function onTimeEntriesChange(callback: (entries: TimeEntry[]) => void): (
   const unsub = onValue(dbRef('timeEntries'), (snap) => {
     if (!snap.exists()) { callback([]); return; }
     callback(Object.values(snap.val() as Record<string, TimeEntry>));
+  }, (error) => {
+    console.error('Firebase time entries read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -444,6 +462,9 @@ export function onVacationsChange(callback: (requests: VacationRequest[]) => voi
   const unsub = onValue(dbRef('vacations'), (snap) => {
     if (!snap.exists()) { callback([]); return; }
     callback(Object.values(snap.val() as Record<string, VacationRequest>));
+  }, (error) => {
+    console.error('Firebase vacations read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -571,6 +592,9 @@ export function onAnnouncementsChange(callback: (items: Announcement[]) => void)
   const unsub = onValue(dbRef('announcements'), (snap) => {
     if (!snap.exists()) { callback([]); return; }
     callback(Object.values(snap.val() as Record<string, Announcement>).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+  }, (error) => {
+    console.error('Firebase announcements read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -603,6 +627,9 @@ export function onEmployeeRequestsChange(callback: (items: EmployeeRequest[]) =>
   const unsub = onValue(dbRef('employeeRequests'), (snap) => {
     if (!snap.exists()) { callback([]); return; }
     callback(Object.values(snap.val() as Record<string, EmployeeRequest>));
+  }, (error) => {
+    console.error('Firebase employee requests read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -635,6 +662,9 @@ export function onWriteUpsChange(callback: (items: WriteUp[]) => void): () => vo
   const unsub = onValue(dbRef('writeups'), (snap) => {
     if (!snap.exists()) { callback([]); return; }
     callback(Object.values(snap.val() as Record<string, WriteUp>));
+  }, (error) => {
+    console.error('Firebase writeups read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -666,6 +696,9 @@ export function onDocumentsChange(callback: (items: HRDocument[]) => void): () =
   const unsub = onValue(dbRef('documents'), (snap) => {
     if (!snap.exists()) { callback([]); return; }
     callback(Object.values(snap.val() as Record<string, HRDocument>));
+  }, (error) => {
+    console.error('Firebase documents read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -691,6 +724,9 @@ export function onFeedbackChange(callback: (items: AnonymousFeedback[]) => void)
   const unsub = onValue(dbRef('feedback'), (snap) => {
     if (!snap.exists()) { callback([]); return; }
     callback(Object.values(snap.val() as Record<string, AnonymousFeedback>));
+  }, (error) => {
+    console.error('Firebase feedback read error:', error);
+    callback([]);
   });
   return unsub;
 }
