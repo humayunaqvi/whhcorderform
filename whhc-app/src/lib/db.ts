@@ -1,3 +1,5 @@
+import { ref, push, get, set, update, remove, onValue, query, orderByChild, equalTo } from 'firebase/database';
+import { db, DB_PREFIX } from './firebase';
 import type {
   Order, Device, DeviceAssignment, WaitlistEntry, Task, DeviceType,
   TimeEntry, VacationRequest, VacationStatus, TimeSlot, PayPeriod,
@@ -6,62 +8,12 @@ import type {
 } from '@/types';
 
 // ============================================================
-// localStorage-based storage for development
-// Will switch to Firebase when deployed with proper DB rules
+// Firebase Realtime Database storage
+// All data is stored under the 'v2/' prefix
 // ============================================================
 
-const STORE_KEYS = {
-  orders: 'whhc_v2_orders',
-  tasks: 'whhc_v2_tasks',
-  devices: 'whhc_v2_devices',
-  assignments: 'whhc_v2_assignments',
-  waitlist: 'whhc_v2_waitlist',
-  // HR / Practice Management
-  timeEntries: 'whhc_v2_time_entries',
-  vacations: 'whhc_v2_vacations',
-  payPeriods: 'whhc_v2_pay_periods',
-  announcements: 'whhc_v2_announcements',
-  employeeRequests: 'whhc_v2_employee_requests',
-  writeups: 'whhc_v2_writeups',
-  documents: 'whhc_v2_documents',
-  feedback: 'whhc_v2_feedback',
-};
-
-function getStore<T>(key: string): Record<string, T> {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function setStore<T>(key: string, data: Record<string, T>): void {
-  localStorage.setItem(key, JSON.stringify(data));
-}
-
-function genId(): string {
-  return '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
-
-// Change listeners
-type Listener<T> = (items: T[]) => void;
-const listeners: Record<string, Set<Listener<any>>> = {};
-
-function notify(storeKey: string) {
-  const set = listeners[storeKey];
-  if (!set) return;
-  const data = getStore(storeKey);
-  const items = Object.values(data);
-  set.forEach(cb => {
-    try { cb(items); } catch { /* ignore */ }
-  });
-}
-
-function subscribe<T>(storeKey: string, cb: Listener<T>): () => void {
-  if (!listeners[storeKey]) listeners[storeKey] = new Set();
-  listeners[storeKey].add(cb);
-  return () => { listeners[storeKey]?.delete(cb); };
+function dbRef(path: string) {
+  return ref(db, `${DB_PREFIX}/${path}`);
 }
 
 // ============================================================
@@ -69,44 +21,43 @@ function subscribe<T>(storeKey: string, cb: Listener<T>): () => void {
 // ============================================================
 
 export async function saveOrder(order: Omit<Order, 'id' | 'createdAt'>): Promise<string> {
-  const id = genId();
+  const newRef = push(dbRef('orders'));
+  const id = newRef.key!;
   const data: Order = { ...order, id, createdAt: new Date().toISOString() };
-  const store = getStore<Order>(STORE_KEYS.orders);
-  store[id] = data;
-  setStore(STORE_KEYS.orders, store);
-  notify(STORE_KEYS.orders);
+  await set(newRef, data);
   return id;
 }
 
 export async function getOrdersByDate(date: string): Promise<Order[]> {
-  const store = getStore<Order>(STORE_KEYS.orders);
-  return Object.values(store).filter(o => o.dateOfService === date);
+  const snap = await get(dbRef('orders'));
+  if (!snap.exists()) return [];
+  const all = snap.val() as Record<string, Order>;
+  return Object.values(all).filter(o => o.dateOfService === date);
 }
 
 export async function getAllOrders(): Promise<Order[]> {
-  return Object.values(getStore<Order>(STORE_KEYS.orders));
+  const snap = await get(dbRef('orders'));
+  if (!snap.exists()) return [];
+  return Object.values(snap.val() as Record<string, Order>);
 }
 
 export async function updateOrder(orderId: string, updates: Partial<Order>): Promise<void> {
-  const store = getStore<Order>(STORE_KEYS.orders);
-  if (store[orderId]) {
-    store[orderId] = { ...store[orderId], ...updates };
-    setStore(STORE_KEYS.orders, store);
-    notify(STORE_KEYS.orders);
-  }
+  await update(dbRef(`orders/${orderId}`), updates);
 }
 
 export async function getOrder(id: string): Promise<Order | null> {
-  const store = getStore<Order>(STORE_KEYS.orders);
-  return store[id] || null;
+  const snap = await get(dbRef(`orders/${id}`));
+  return snap.exists() ? (snap.val() as Order) : null;
 }
 
 export function onOrdersChange(date: string, callback: (orders: Order[]) => void): () => void {
-  // Initial call
-  getOrdersByDate(date).then(callback);
-  // Subscribe to changes
-  const unsub = subscribe<Order>(STORE_KEYS.orders, (all) => {
-    callback(all.filter(o => o.dateOfService === date));
+  const unsub = onValue(dbRef('orders'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    const all = snap.val() as Record<string, Order>;
+    callback(Object.values(all).filter(o => o.dateOfService === date));
+  }, (error) => {
+    console.error('Firebase orders read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -116,38 +67,36 @@ export function onOrdersChange(date: string, callback: (orders: Order[]) => void
 // ============================================================
 
 export async function saveTasks(tasks: Omit<Task, 'id' | 'createdAt'>[]): Promise<void> {
-  const store = getStore<Task>(STORE_KEYS.tasks);
   for (const task of tasks) {
-    const id = genId();
-    store[id] = { ...task, id, createdAt: new Date().toISOString() } as Task;
+    const newRef = push(dbRef('tasks'));
+    const id = newRef.key!;
+    await set(newRef, { ...task, id, createdAt: new Date().toISOString() });
   }
-  setStore(STORE_KEYS.tasks, store);
-  notify(STORE_KEYS.tasks);
 }
 
 export async function getTasksByDate(date: string): Promise<Task[]> {
-  const store = getStore<Task>(STORE_KEYS.tasks);
-  return Object.values(store).filter(t => t.dateOfService === date);
+  const snap = await get(dbRef('tasks'));
+  if (!snap.exists()) return [];
+  const all = snap.val() as Record<string, Task>;
+  return Object.values(all).filter(t => t.dateOfService === date);
 }
 
 export async function toggleTaskComplete(taskId: string, completed: boolean, completedBy?: string): Promise<void> {
-  const store = getStore<Task>(STORE_KEYS.tasks);
-  if (store[taskId]) {
-    store[taskId] = {
-      ...store[taskId],
-      completed,
-      completedBy: completed ? completedBy : undefined,
-      completedAt: completed ? new Date().toISOString() : undefined,
-    };
-    setStore(STORE_KEYS.tasks, store);
-    notify(STORE_KEYS.tasks);
-  }
+  await update(dbRef(`tasks/${taskId}`), {
+    completed,
+    completedBy: completed ? completedBy : null,
+    completedAt: completed ? new Date().toISOString() : null,
+  });
 }
 
 export function onTasksChange(date: string, callback: (tasks: Task[]) => void): () => void {
-  getTasksByDate(date).then(callback);
-  const unsub = subscribe<Task>(STORE_KEYS.tasks, (all) => {
-    callback(all.filter(t => t.dateOfService === date));
+  const unsub = onValue(dbRef('tasks'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    const all = snap.val() as Record<string, Task>;
+    callback(Object.values(all).filter(t => t.dateOfService === date));
+  }, (error) => {
+    console.error('Firebase tasks read error:', error);
+    callback([]);
   });
   return unsub;
 }
@@ -157,16 +106,16 @@ export function onTasksChange(date: string, callback: (tasks: Task[]) => void): 
 // ============================================================
 
 export async function addDevice(device: Omit<Device, 'id' | 'createdAt'>): Promise<string> {
-  const id = genId();
-  const store = getStore<Device>(STORE_KEYS.devices);
-  store[id] = { ...device, id, createdAt: new Date().toISOString() } as Device;
-  setStore(STORE_KEYS.devices, store);
-  notify(STORE_KEYS.devices);
+  const newRef = push(dbRef('devices'));
+  const id = newRef.key!;
+  await set(newRef, { ...device, id, createdAt: new Date().toISOString() });
   return id;
 }
 
 export async function getAllDevices(): Promise<Device[]> {
-  return Object.values(getStore<Device>(STORE_KEYS.devices));
+  const snap = await get(dbRef('devices'));
+  if (!snap.exists()) return [];
+  return Object.values(snap.val() as Record<string, Device>);
 }
 
 export async function getAvailableDevices(type?: DeviceType): Promise<Device[]> {
@@ -175,24 +124,27 @@ export async function getAvailableDevices(type?: DeviceType): Promise<Device[]> 
 }
 
 export async function updateDevice(deviceId: string, updates: Partial<Device>): Promise<void> {
-  const store = getStore<Device>(STORE_KEYS.devices);
-  if (store[deviceId]) {
-    store[deviceId] = { ...store[deviceId], ...updates };
-    setStore(STORE_KEYS.devices, store);
-    notify(STORE_KEYS.devices);
+  // Replace undefined values with null for Firebase
+  const cleaned: Record<string, any> = {};
+  for (const [k, v] of Object.entries(updates)) {
+    cleaned[k] = v === undefined ? null : v;
   }
+  await update(dbRef(`devices/${deviceId}`), cleaned);
 }
 
 export async function deleteDevice(deviceId: string): Promise<void> {
-  const store = getStore<Device>(STORE_KEYS.devices);
-  delete store[deviceId];
-  setStore(STORE_KEYS.devices, store);
-  notify(STORE_KEYS.devices);
+  await remove(dbRef(`devices/${deviceId}`));
 }
 
 export function onDevicesChange(callback: (devices: Device[]) => void): () => void {
-  getAllDevices().then(callback);
-  return subscribe<Device>(STORE_KEYS.devices, callback);
+  const unsub = onValue(dbRef('devices'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    callback(Object.values(snap.val() as Record<string, Device>));
+  }, (error) => {
+    console.error('Firebase devices read error:', error);
+    callback([]);
+  });
+  return unsub;
 }
 
 // ============================================================
@@ -200,11 +152,9 @@ export function onDevicesChange(callback: (devices: Device[]) => void): () => vo
 // ============================================================
 
 export async function createAssignment(assignment: Omit<DeviceAssignment, 'id' | 'createdAt'>): Promise<string> {
-  const id = genId();
-  const store = getStore<DeviceAssignment>(STORE_KEYS.assignments);
-  store[id] = { ...assignment, id, createdAt: new Date().toISOString() } as DeviceAssignment;
-  setStore(STORE_KEYS.assignments, store);
-  notify(STORE_KEYS.assignments);
+  const newRef = push(dbRef('assignments'));
+  const id = newRef.key!;
+  await set(newRef, { ...assignment, id, createdAt: new Date().toISOString() });
 
   // Update device status
   await updateDevice(assignment.deviceId, {
@@ -216,12 +166,16 @@ export async function createAssignment(assignment: Omit<DeviceAssignment, 'id' |
 }
 
 export async function getActiveAssignments(): Promise<DeviceAssignment[]> {
-  const store = getStore<DeviceAssignment>(STORE_KEYS.assignments);
-  return Object.values(store).filter(a => a.status === 'active' || a.status === 'overdue');
+  const snap = await get(dbRef('assignments'));
+  if (!snap.exists()) return [];
+  const all = snap.val() as Record<string, DeviceAssignment>;
+  return Object.values(all).filter(a => a.status === 'active' || a.status === 'overdue');
 }
 
 export async function getAllAssignments(): Promise<DeviceAssignment[]> {
-  return Object.values(getStore<DeviceAssignment>(STORE_KEYS.assignments));
+  const snap = await get(dbRef('assignments'));
+  if (!snap.exists()) return [];
+  return Object.values(snap.val() as Record<string, DeviceAssignment>);
 }
 
 export async function returnDevice(
@@ -231,18 +185,12 @@ export async function returnDevice(
   returnCondition: 'Good' | 'Needs Maintenance' | 'Damaged',
   returnNotes?: string
 ): Promise<void> {
-  const store = getStore<DeviceAssignment>(STORE_KEYS.assignments);
-  if (store[assignmentId]) {
-    store[assignmentId] = {
-      ...store[assignmentId],
-      status: 'returned',
-      returnDate,
-      returnCondition,
-      returnNotes: returnNotes || '',
-    };
-    setStore(STORE_KEYS.assignments, store);
-    notify(STORE_KEYS.assignments);
-  }
+  await update(dbRef(`assignments/${assignmentId}`), {
+    status: 'returned',
+    returnDate,
+    returnCondition,
+    returnNotes: returnNotes || '',
+  });
 
   await updateDevice(deviceId, {
     status: returnCondition === 'Needs Maintenance' || returnCondition === 'Damaged' ? 'Maintenance' : 'Available',
@@ -251,8 +199,14 @@ export async function returnDevice(
 }
 
 export function onAssignmentsChange(callback: (assignments: DeviceAssignment[]) => void): () => void {
-  getAllAssignments().then(callback);
-  return subscribe<DeviceAssignment>(STORE_KEYS.assignments, callback);
+  const unsub = onValue(dbRef('assignments'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    callback(Object.values(snap.val() as Record<string, DeviceAssignment>));
+  }, (error) => {
+    console.error('Firebase assignments read error:', error);
+    callback([]);
+  });
+  return unsub;
 }
 
 // ============================================================
@@ -263,36 +217,36 @@ export async function addToWaitlist(entry: Omit<WaitlistEntry, 'id' | 'addedAt' 
   const existing = await getWaitlist();
   const maxPos = existing.length > 0 ? Math.max(...existing.map(e => e.position)) : 0;
 
-  const id = genId();
-  const store = getStore<WaitlistEntry>(STORE_KEYS.waitlist);
-  store[id] = {
+  const newRef = push(dbRef('waitlist'));
+  const id = newRef.key!;
+  await set(newRef, {
     ...entry,
     id,
     position: maxPos + 1,
     addedAt: new Date().toISOString(),
-  } as WaitlistEntry;
-  setStore(STORE_KEYS.waitlist, store);
-  notify(STORE_KEYS.waitlist);
+  });
   return id;
 }
 
 export async function getWaitlist(): Promise<WaitlistEntry[]> {
-  const store = getStore<WaitlistEntry>(STORE_KEYS.waitlist);
-  return Object.values(store).sort((a, b) => a.position - b.position);
+  const snap = await get(dbRef('waitlist'));
+  if (!snap.exists()) return [];
+  return Object.values(snap.val() as Record<string, WaitlistEntry>).sort((a, b) => a.position - b.position);
 }
 
 export async function removeFromWaitlist(entryId: string): Promise<void> {
-  const store = getStore<WaitlistEntry>(STORE_KEYS.waitlist);
-  delete store[entryId];
-  setStore(STORE_KEYS.waitlist, store);
-  notify(STORE_KEYS.waitlist);
+  await remove(dbRef(`waitlist/${entryId}`));
 }
 
 export function onWaitlistChange(callback: (entries: WaitlistEntry[]) => void): () => void {
-  getWaitlist().then(callback);
-  return subscribe<WaitlistEntry>(STORE_KEYS.waitlist, (all) => {
-    callback(all.sort((a, b) => a.position - b.position));
+  const unsub = onValue(dbRef('waitlist'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    callback(Object.values(snap.val() as Record<string, WaitlistEntry>).sort((a, b) => a.position - b.position));
+  }, (error) => {
+    console.error('Firebase waitlist read error:', error);
+    callback([]);
   });
+  return unsub;
 }
 
 // ============================================================
@@ -300,9 +254,10 @@ export function onWaitlistChange(callback: (entries: WaitlistEntry[]) => void): 
 // ============================================================
 
 export async function clockIn(userId: string, username: string, displayName: string): Promise<string> {
-  const id = genId();
   const now = new Date().toISOString();
   const date = now.slice(0, 10);
+  const newRef = push(dbRef('timeEntries'));
+  const id = newRef.key!;
   const entry: TimeEntry = {
     id, userId, username, displayName,
     clockIn: now,
@@ -310,17 +265,14 @@ export async function clockIn(userId: string, username: string, displayName: str
     date,
     createdAt: now,
   };
-  const store = getStore<TimeEntry>(STORE_KEYS.timeEntries);
-  store[id] = entry;
-  setStore(STORE_KEYS.timeEntries, store);
-  notify(STORE_KEYS.timeEntries);
+  await set(newRef, entry);
   return id;
 }
 
 export async function clockOut(entryId: string): Promise<void> {
-  const store = getStore<TimeEntry>(STORE_KEYS.timeEntries);
-  const entry = store[entryId];
-  if (!entry) return;
+  const snap = await get(dbRef(`timeEntries/${entryId}`));
+  if (!snap.exists()) return;
+  const entry = snap.val() as TimeEntry;
 
   const now = new Date().toISOString();
   const clockInMs = new Date(entry.clockIn).getTime();
@@ -328,47 +280,40 @@ export async function clockOut(entryId: string): Promise<void> {
   const totalMs = clockOutMs - clockInMs;
   const totalHours = (totalMs / (1000 * 60 * 60)) - (entry.totalBreakMinutes / 60);
 
-  store[entryId] = { ...entry, clockOut: now, totalHours: Math.max(0, totalHours) };
-  setStore(STORE_KEYS.timeEntries, store);
-  notify(STORE_KEYS.timeEntries);
+  await update(dbRef(`timeEntries/${entryId}`), { clockOut: now, totalHours: Math.max(0, totalHours) });
 }
 
 export async function startBreak(entryId: string): Promise<void> {
-  const store = getStore<TimeEntry>(STORE_KEYS.timeEntries);
-  if (store[entryId]) {
-    store[entryId] = { ...store[entryId], breakStart: new Date().toISOString() };
-    setStore(STORE_KEYS.timeEntries, store);
-    notify(STORE_KEYS.timeEntries);
-  }
+  await update(dbRef(`timeEntries/${entryId}`), { breakStart: new Date().toISOString() });
 }
 
 export async function endBreak(entryId: string): Promise<void> {
-  const store = getStore<TimeEntry>(STORE_KEYS.timeEntries);
-  const entry = store[entryId];
-  if (!entry || !entry.breakStart) return;
+  const snap = await get(dbRef(`timeEntries/${entryId}`));
+  if (!snap.exists()) return;
+  const entry = snap.val() as TimeEntry;
+  if (!entry.breakStart) return;
 
   const breakMs = new Date().getTime() - new Date(entry.breakStart).getTime();
   const breakMin = breakMs / (1000 * 60);
 
-  store[entryId] = {
-    ...entry,
-    breakStart: undefined,
+  await update(dbRef(`timeEntries/${entryId}`), {
+    breakStart: null,
     breakEnd: new Date().toISOString(),
     totalBreakMinutes: (entry.totalBreakMinutes || 0) + breakMin,
-  };
-  setStore(STORE_KEYS.timeEntries, store);
-  notify(STORE_KEYS.timeEntries);
+  });
 }
 
 export async function getActiveTimeEntry(userId: string): Promise<TimeEntry | null> {
-  const store = getStore<TimeEntry>(STORE_KEYS.timeEntries);
-  const entries = Object.values(store);
-  return entries.find(e => e.userId === userId && !e.clockOut) || null;
+  const snap = await get(dbRef('timeEntries'));
+  if (!snap.exists()) return null;
+  const all = snap.val() as Record<string, TimeEntry>;
+  return Object.values(all).find(e => e.userId === userId && !e.clockOut) || null;
 }
 
 export async function getTimeEntries(filters?: { userId?: string; dateFrom?: string; dateTo?: string }): Promise<TimeEntry[]> {
-  const store = getStore<TimeEntry>(STORE_KEYS.timeEntries);
-  let entries = Object.values(store);
+  const snap = await get(dbRef('timeEntries'));
+  if (!snap.exists()) return [];
+  let entries = Object.values(snap.val() as Record<string, TimeEntry>);
   if (filters?.userId) entries = entries.filter(e => e.userId === filters.userId);
   if (filters?.dateFrom) entries = entries.filter(e => e.date >= filters.dateFrom!);
   if (filters?.dateTo) entries = entries.filter(e => e.date <= filters.dateTo!);
@@ -376,33 +321,33 @@ export async function getTimeEntries(filters?: { userId?: string; dateFrom?: str
 }
 
 export async function updateTimeEntry(entryId: string, updates: Partial<TimeEntry>): Promise<void> {
-  const store = getStore<TimeEntry>(STORE_KEYS.timeEntries);
-  if (store[entryId]) {
-    store[entryId] = { ...store[entryId], ...updates };
-    setStore(STORE_KEYS.timeEntries, store);
-    notify(STORE_KEYS.timeEntries);
+  const cleaned: Record<string, any> = {};
+  for (const [k, v] of Object.entries(updates)) {
+    cleaned[k] = v === undefined ? null : v;
   }
+  await update(dbRef(`timeEntries/${entryId}`), cleaned);
 }
 
 export async function deleteTimeEntry(entryId: string): Promise<void> {
-  const store = getStore<TimeEntry>(STORE_KEYS.timeEntries);
-  delete store[entryId];
-  setStore(STORE_KEYS.timeEntries, store);
-  notify(STORE_KEYS.timeEntries);
+  await remove(dbRef(`timeEntries/${entryId}`));
 }
 
 export async function addManualTimeEntry(entry: Omit<TimeEntry, 'id' | 'createdAt'>): Promise<string> {
-  const id = genId();
-  const store = getStore<TimeEntry>(STORE_KEYS.timeEntries);
-  store[id] = { ...entry, id, createdAt: new Date().toISOString() } as TimeEntry;
-  setStore(STORE_KEYS.timeEntries, store);
-  notify(STORE_KEYS.timeEntries);
+  const newRef = push(dbRef('timeEntries'));
+  const id = newRef.key!;
+  await set(newRef, { ...entry, id, createdAt: new Date().toISOString() });
   return id;
 }
 
 export function onTimeEntriesChange(callback: (entries: TimeEntry[]) => void): () => void {
-  getTimeEntries().then(callback);
-  return subscribe<TimeEntry>(STORE_KEYS.timeEntries, callback);
+  const unsub = onValue(dbRef('timeEntries'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    callback(Object.values(snap.val() as Record<string, TimeEntry>));
+  }, (error) => {
+    console.error('Firebase time entries read error:', error);
+    callback([]);
+  });
+  return unsub;
 }
 
 // ============================================================
@@ -410,17 +355,16 @@ export function onTimeEntriesChange(callback: (entries: TimeEntry[]) => void): (
 // ============================================================
 
 export async function createVacationRequest(req: Omit<VacationRequest, 'id' | 'createdAt' | 'status'>): Promise<string> {
-  const id = genId();
-  const store = getStore<VacationRequest>(STORE_KEYS.vacations);
-  store[id] = { ...req, id, status: 'pending', createdAt: new Date().toISOString() } as VacationRequest;
-  setStore(STORE_KEYS.vacations, store);
-  notify(STORE_KEYS.vacations);
+  const newRef = push(dbRef('vacations'));
+  const id = newRef.key!;
+  await set(newRef, { ...req, id, status: 'pending', createdAt: new Date().toISOString() });
   return id;
 }
 
 export async function getVacationRequests(filters?: { userId?: string; status?: VacationStatus }): Promise<VacationRequest[]> {
-  const store = getStore<VacationRequest>(STORE_KEYS.vacations);
-  let requests = Object.values(store);
+  const snap = await get(dbRef('vacations'));
+  if (!snap.exists()) return [];
+  let requests = Object.values(snap.val() as Record<string, VacationRequest>);
   if (filters?.userId) requests = requests.filter(r => r.userId === filters.userId);
   if (filters?.status) requests = requests.filter(r => r.status === filters.status);
   return requests.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -432,18 +376,12 @@ export async function updateVacationStatus(
   reviewedBy: string,
   reviewNote?: string
 ): Promise<void> {
-  const store = getStore<VacationRequest>(STORE_KEYS.vacations);
-  if (store[requestId]) {
-    store[requestId] = {
-      ...store[requestId],
-      status,
-      reviewedBy,
-      reviewedAt: new Date().toISOString(),
-      reviewNote,
-    };
-    setStore(STORE_KEYS.vacations, store);
-    notify(STORE_KEYS.vacations);
-  }
+  await update(dbRef(`vacations/${requestId}`), {
+    status,
+    reviewedBy,
+    reviewedAt: new Date().toISOString(),
+    reviewNote: reviewNote || null,
+  });
 }
 
 export async function logSameDayPto(params: {
@@ -457,9 +395,9 @@ export async function logSameDayPto(params: {
   reason: string;
   countAsPto: boolean;
 }): Promise<string> {
-  const id = genId();
-  const store = getStore<VacationRequest>(STORE_KEYS.vacations);
-  store[id] = {
+  const newRef = push(dbRef('vacations'));
+  const id = newRef.key!;
+  await set(newRef, {
     id,
     userId: params.userId,
     username: params.username,
@@ -467,16 +405,14 @@ export async function logSameDayPto(params: {
     startDate: params.date,
     endDate: params.date,
     timeSlot: params.timeSlot,
-    ptoStartTime: params.ptoStartTime,
-    ptoEndTime: params.ptoEndTime,
+    ptoStartTime: params.ptoStartTime || null,
+    ptoEndTime: params.ptoEndTime || null,
     reason: params.reason,
     countAsPto: params.countAsPto,
     status: 'approved',
     source: 'same_day',
     createdAt: new Date().toISOString(),
-  };
-  setStore(STORE_KEYS.vacations, store);
-  notify(STORE_KEYS.vacations);
+  });
 
   // Update PTO balance
   if (params.countAsPto) {
@@ -496,18 +432,17 @@ export async function updateVacationRequest(
   requestId: string,
   updates: Partial<Pick<VacationRequest, 'ptoStartTime' | 'ptoEndTime' | 'reason' | 'countAsPto' | 'timeSlot' | 'startDate' | 'endDate'>>
 ): Promise<void> {
-  const store = getStore<VacationRequest>(STORE_KEYS.vacations);
-  if (store[requestId]) {
-    store[requestId] = { ...store[requestId], ...updates };
-    setStore(STORE_KEYS.vacations, store);
-    notify(STORE_KEYS.vacations);
+  const cleaned: Record<string, any> = {};
+  for (const [k, v] of Object.entries(updates)) {
+    cleaned[k] = v === undefined ? null : v;
   }
+  await update(dbRef(`vacations/${requestId}`), cleaned);
 }
 
 export async function deleteVacationRequest(requestId: string): Promise<void> {
-  const store = getStore<VacationRequest>(STORE_KEYS.vacations);
-  const req = store[requestId];
-  if (!req) return;
+  const snap = await get(dbRef(`vacations/${requestId}`));
+  if (!snap.exists()) return;
+  const req = snap.val() as VacationRequest;
 
   // Refund PTO balance if it was counted
   if (req.countAsPto && req.status === 'approved') {
@@ -520,14 +455,18 @@ export async function deleteVacationRequest(requestId: string): Promise<void> {
     }
   }
 
-  delete store[requestId];
-  setStore(STORE_KEYS.vacations, store);
-  notify(STORE_KEYS.vacations);
+  await remove(dbRef(`vacations/${requestId}`));
 }
 
 export function onVacationsChange(callback: (requests: VacationRequest[]) => void): () => void {
-  getVacationRequests().then(callback);
-  return subscribe<VacationRequest>(STORE_KEYS.vacations, callback);
+  const unsub = onValue(dbRef('vacations'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    callback(Object.values(snap.val() as Record<string, VacationRequest>));
+  }, (error) => {
+    console.error('Firebase vacations read error:', error);
+    callback([]);
+  });
+  return unsub;
 }
 
 // ============================================================
@@ -540,7 +479,7 @@ export async function closePayPeriod(startDate: string, endDate: string, closedB
   // Build summary by user
   const summary: PayPeriod['summary'] = {};
   for (const entry of entries) {
-    if (!entry.clockOut) continue; // skip active entries
+    if (!entry.clockOut) continue;
     if (!summary[entry.userId]) {
       summary[entry.userId] = { totalHours: 0, totalBreakMinutes: 0, entries: 0, ptoHours: 0, ptoEntries: 0 };
     }
@@ -570,17 +509,16 @@ export async function closePayPeriod(startDate: string, endDate: string, closedB
     summary[pto.userId].ptoEntries = (summary[pto.userId].ptoEntries || 0) + 1;
   }
 
-  const id = genId();
-  const store = getStore<PayPeriod>(STORE_KEYS.payPeriods);
-  store[id] = { id, startDate, endDate, closedBy, closedAt: new Date().toISOString(), summary };
-  setStore(STORE_KEYS.payPeriods, store);
-  notify(STORE_KEYS.payPeriods);
+  const newRef = push(dbRef('payPeriods'));
+  const id = newRef.key!;
+  await set(newRef, { id, startDate, endDate, closedBy, closedAt: new Date().toISOString(), summary });
   return id;
 }
 
 export async function getPayPeriods(): Promise<PayPeriod[]> {
-  const store = getStore<PayPeriod>(STORE_KEYS.payPeriods);
-  return Object.values(store).sort((a, b) => b.closedAt.localeCompare(a.closedAt));
+  const snap = await get(dbRef('payPeriods'));
+  if (!snap.exists()) return [];
+  return Object.values(snap.val() as Record<string, PayPeriod>).sort((a, b) => b.closedAt.localeCompare(a.closedAt));
 }
 
 export async function getPayrollReport(startDate: string, endDate: string): Promise<{
@@ -601,7 +539,6 @@ export async function getPayrollReport(startDate: string, endDate: string): Prom
     summaryByUser[entry.userId].entries += 1;
   }
 
-  // Include approved PTO in the report
   const allPto = await getVacationRequests({ status: 'approved' });
   const periodPto = allPto.filter(p => p.startDate >= startDate && p.startDate <= endDate && p.countAsPto);
 
@@ -609,7 +546,6 @@ export async function getPayrollReport(startDate: string, endDate: string): Prom
     if (!summaryByUser[pto.userId]) {
       summaryByUser[pto.userId] = { displayName: pto.displayName, totalHours: 0, totalBreakMinutes: 0, entries: 0, ptoHours: 0, ptoEntries: 0 };
     }
-    // Calculate PTO hours
     let ptoHrs = 0;
     if (pto.timeSlot === 'full_day') {
       ptoHrs = 8;
@@ -618,7 +554,7 @@ export async function getPayrollReport(startDate: string, endDate: string): Prom
       const [eh, em] = pto.ptoEndTime.split(':').map(Number);
       ptoHrs = (eh + em / 60) - (sh + sm / 60);
     } else {
-      ptoHrs = 4; // half-day default
+      ptoHrs = 4;
     }
     summaryByUser[pto.userId].ptoHours += ptoHrs;
     summaryByUser[pto.userId].ptoEntries += 1;
@@ -632,38 +568,35 @@ export async function getPayrollReport(startDate: string, endDate: string): Prom
 // ============================================================
 
 export async function createAnnouncement(ann: Omit<Announcement, 'id' | 'createdAt'>): Promise<string> {
-  const id = genId();
-  const store = getStore<Announcement>(STORE_KEYS.announcements);
-  store[id] = { ...ann, id, createdAt: new Date().toISOString() };
-  setStore(STORE_KEYS.announcements, store);
-  notify(STORE_KEYS.announcements);
+  const newRef = push(dbRef('announcements'));
+  const id = newRef.key!;
+  await set(newRef, { ...ann, id, createdAt: new Date().toISOString() });
   return id;
 }
 
 export async function getAnnouncements(): Promise<Announcement[]> {
-  const store = getStore<Announcement>(STORE_KEYS.announcements);
-  return Object.values(store).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const snap = await get(dbRef('announcements'));
+  if (!snap.exists()) return [];
+  return Object.values(snap.val() as Record<string, Announcement>).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function updateAnnouncement(id: string, updates: Partial<Announcement>): Promise<void> {
-  const store = getStore<Announcement>(STORE_KEYS.announcements);
-  if (store[id]) {
-    store[id] = { ...store[id], ...updates };
-    setStore(STORE_KEYS.announcements, store);
-    notify(STORE_KEYS.announcements);
-  }
+  await update(dbRef(`announcements/${id}`), updates);
 }
 
 export async function deleteAnnouncement(id: string): Promise<void> {
-  const store = getStore<Announcement>(STORE_KEYS.announcements);
-  delete store[id];
-  setStore(STORE_KEYS.announcements, store);
-  notify(STORE_KEYS.announcements);
+  await remove(dbRef(`announcements/${id}`));
 }
 
 export function onAnnouncementsChange(callback: (items: Announcement[]) => void): () => void {
-  getAnnouncements().then(callback);
-  return subscribe<Announcement>(STORE_KEYS.announcements, callback);
+  const unsub = onValue(dbRef('announcements'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    callback(Object.values(snap.val() as Record<string, Announcement>).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+  }, (error) => {
+    console.error('Firebase announcements read error:', error);
+    callback([]);
+  });
+  return unsub;
 }
 
 // ============================================================
@@ -671,34 +604,34 @@ export function onAnnouncementsChange(callback: (items: Announcement[]) => void)
 // ============================================================
 
 export async function createEmployeeRequest(req: Omit<EmployeeRequest, 'id' | 'createdAt' | 'status'>): Promise<string> {
-  const id = genId();
-  const store = getStore<EmployeeRequest>(STORE_KEYS.employeeRequests);
-  store[id] = { ...req, id, status: 'pending', createdAt: new Date().toISOString() } as EmployeeRequest;
-  setStore(STORE_KEYS.employeeRequests, store);
-  notify(STORE_KEYS.employeeRequests);
+  const newRef = push(dbRef('employeeRequests'));
+  const id = newRef.key!;
+  await set(newRef, { ...req, id, status: 'pending', createdAt: new Date().toISOString() });
   return id;
 }
 
 export async function getEmployeeRequests(filters?: { userId?: string; status?: RequestStatus }): Promise<EmployeeRequest[]> {
-  const store = getStore<EmployeeRequest>(STORE_KEYS.employeeRequests);
-  let requests = Object.values(store);
+  const snap = await get(dbRef('employeeRequests'));
+  if (!snap.exists()) return [];
+  let requests = Object.values(snap.val() as Record<string, EmployeeRequest>);
   if (filters?.userId) requests = requests.filter(r => r.userId === filters.userId);
   if (filters?.status) requests = requests.filter(r => r.status === filters.status);
   return requests.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function updateEmployeeRequest(id: string, updates: Partial<EmployeeRequest>): Promise<void> {
-  const store = getStore<EmployeeRequest>(STORE_KEYS.employeeRequests);
-  if (store[id]) {
-    store[id] = { ...store[id], ...updates };
-    setStore(STORE_KEYS.employeeRequests, store);
-    notify(STORE_KEYS.employeeRequests);
-  }
+  await update(dbRef(`employeeRequests/${id}`), updates);
 }
 
 export function onEmployeeRequestsChange(callback: (items: EmployeeRequest[]) => void): () => void {
-  getEmployeeRequests().then(callback);
-  return subscribe<EmployeeRequest>(STORE_KEYS.employeeRequests, callback);
+  const unsub = onValue(dbRef('employeeRequests'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    callback(Object.values(snap.val() as Record<string, EmployeeRequest>));
+  }, (error) => {
+    console.error('Firebase employee requests read error:', error);
+    callback([]);
+  });
+  return unsub;
 }
 
 // ============================================================
@@ -706,29 +639,34 @@ export function onEmployeeRequestsChange(callback: (items: EmployeeRequest[]) =>
 // ============================================================
 
 export async function createWriteUp(wu: Omit<WriteUp, 'id' | 'createdAt'>): Promise<string> {
-  const id = genId();
-  const store = getStore<WriteUp>(STORE_KEYS.writeups);
-  store[id] = { ...wu, id, createdAt: new Date().toISOString() } as WriteUp;
-  setStore(STORE_KEYS.writeups, store);
-  notify(STORE_KEYS.writeups);
+  const newRef = push(dbRef('writeups'));
+  const id = newRef.key!;
+  await set(newRef, { ...wu, id, createdAt: new Date().toISOString() });
   return id;
 }
 
 export async function getWriteUps(employeeId?: string): Promise<WriteUp[]> {
-  const store = getStore<WriteUp>(STORE_KEYS.writeups);
-  let items = Object.values(store);
+  const snap = await get(dbRef('writeups'));
+  if (!snap.exists()) return [];
+  let items = Object.values(snap.val() as Record<string, WriteUp>);
   if (employeeId) items = items.filter(w => w.employeeId === employeeId);
   return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function getWriteUp(id: string): Promise<WriteUp | null> {
-  const store = getStore<WriteUp>(STORE_KEYS.writeups);
-  return store[id] || null;
+  const snap = await get(dbRef(`writeups/${id}`));
+  return snap.exists() ? (snap.val() as WriteUp) : null;
 }
 
 export function onWriteUpsChange(callback: (items: WriteUp[]) => void): () => void {
-  getWriteUps().then(callback);
-  return subscribe<WriteUp>(STORE_KEYS.writeups, callback);
+  const unsub = onValue(dbRef('writeups'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    callback(Object.values(snap.val() as Record<string, WriteUp>));
+  }, (error) => {
+    console.error('Firebase writeups read error:', error);
+    callback([]);
+  });
+  return unsub;
 }
 
 // ============================================================
@@ -736,31 +674,33 @@ export function onWriteUpsChange(callback: (items: WriteUp[]) => void): () => vo
 // ============================================================
 
 export async function uploadDocument(doc: Omit<HRDocument, 'id' | 'createdAt'>): Promise<string> {
-  const id = genId();
-  const store = getStore<HRDocument>(STORE_KEYS.documents);
-  store[id] = { ...doc, id, createdAt: new Date().toISOString() } as HRDocument;
-  setStore(STORE_KEYS.documents, store);
-  notify(STORE_KEYS.documents);
+  const newRef = push(dbRef('documents'));
+  const id = newRef.key!;
+  await set(newRef, { ...doc, id, createdAt: new Date().toISOString() });
   return id;
 }
 
 export async function getDocuments(category?: string): Promise<HRDocument[]> {
-  const store = getStore<HRDocument>(STORE_KEYS.documents);
-  let items = Object.values(store);
+  const snap = await get(dbRef('documents'));
+  if (!snap.exists()) return [];
+  let items = Object.values(snap.val() as Record<string, HRDocument>);
   if (category) items = items.filter(d => d.category === category);
   return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function deleteDocument(id: string): Promise<void> {
-  const store = getStore<HRDocument>(STORE_KEYS.documents);
-  delete store[id];
-  setStore(STORE_KEYS.documents, store);
-  notify(STORE_KEYS.documents);
+  await remove(dbRef(`documents/${id}`));
 }
 
 export function onDocumentsChange(callback: (items: HRDocument[]) => void): () => void {
-  getDocuments().then(callback);
-  return subscribe<HRDocument>(STORE_KEYS.documents, callback);
+  const unsub = onValue(dbRef('documents'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    callback(Object.values(snap.val() as Record<string, HRDocument>));
+  }, (error) => {
+    console.error('Firebase documents read error:', error);
+    callback([]);
+  });
+  return unsub;
 }
 
 // ============================================================
@@ -768,20 +708,25 @@ export function onDocumentsChange(callback: (items: HRDocument[]) => void): () =
 // ============================================================
 
 export async function submitFeedback(message: string, category: string): Promise<string> {
-  const id = genId();
-  const store = getStore<AnonymousFeedback>(STORE_KEYS.feedback);
-  store[id] = { id, message, category, createdAt: new Date().toISOString() };
-  setStore(STORE_KEYS.feedback, store);
-  notify(STORE_KEYS.feedback);
+  const newRef = push(dbRef('feedback'));
+  const id = newRef.key!;
+  await set(newRef, { id, message, category, createdAt: new Date().toISOString() });
   return id;
 }
 
 export async function getFeedback(): Promise<AnonymousFeedback[]> {
-  const store = getStore<AnonymousFeedback>(STORE_KEYS.feedback);
-  return Object.values(store).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const snap = await get(dbRef('feedback'));
+  if (!snap.exists()) return [];
+  return Object.values(snap.val() as Record<string, AnonymousFeedback>).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function onFeedbackChange(callback: (items: AnonymousFeedback[]) => void): () => void {
-  getFeedback().then(callback);
-  return subscribe<AnonymousFeedback>(STORE_KEYS.feedback, callback);
+  const unsub = onValue(dbRef('feedback'), (snap) => {
+    if (!snap.exists()) { callback([]); return; }
+    callback(Object.values(snap.val() as Record<string, AnonymousFeedback>));
+  }, (error) => {
+    console.error('Firebase feedback read error:', error);
+    callback([]);
+  });
+  return unsub;
 }
