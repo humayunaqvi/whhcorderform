@@ -215,13 +215,10 @@ body {
 
 /* Print styles */
 @media print {
-  body > *:not(#print-content) {
-    display: none !important;
-  }
-
-  #print-content {
-    display: block !important;
-    background: white;
-    color: black;
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
