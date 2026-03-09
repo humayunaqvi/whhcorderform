@@ -25,6 +25,7 @@ const DEFAULT_USERS: Record<string, { displayName: string; password: string; rol
   hnaqvi: { displayName: 'Dr. Naqvi', password: 'Whhc1140!!', role: 'physician' },
   whhcadmin: { displayName: 'WHHC Admin', password: 'Whhc11421!!', role: 'admin' },
   whhcclinical: { displayName: 'Clinical Coordinator', password: 'clinical123', role: 'clinical' },
+  'whhcpatientcare@htxheart.com': { displayName: 'Patient Care Coordinator', password: 'Whhc1140!!', role: 'clinical' },
   staff1: { displayName: 'Staff 1', password: 'staff123', role: 'staff' },
   staff2: { displayName: 'Staff 2', password: 'staff123', role: 'staff' },
 };
@@ -43,21 +44,36 @@ export async function seedDefaultUsers(): Promise<void> {
 
   // Migrate old roles (tracker → admin, clinic_staff → clinical)
   if (Object.keys(existing).length > 0) {
-    let migrated = false;
+    let changed = false;
     for (const key of Object.keys(existing)) {
       const user = existing[key];
       if (user.role === 'tracker') {
         user.role = 'admin';
-        migrated = true;
+        changed = true;
       } else if (user.role === 'clinic_staff') {
         user.role = 'clinical';
-        migrated = true;
+        changed = true;
       }
     }
-    if (migrated) {
+    // Add any missing default users
+    for (const [username, info] of Object.entries(DEFAULT_USERS)) {
+      const key = sanitizeKey(username);
+      if (!existing[key]) {
+        existing[key] = {
+          id: username.toLowerCase(),
+          username: username.toLowerCase(),
+          displayName: info.displayName,
+          passwordHash: await hashPassword(info.password),
+          role: info.role,
+          createdAt: new Date().toISOString(),
+        };
+        changed = true;
+      }
+    }
+    if (changed) {
       await set(ref(db, USERS_REF), existing);
     }
-    return; // Already seeded
+    return;
   }
 
   const users: Record<string, object> = {};
