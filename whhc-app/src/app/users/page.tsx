@@ -82,7 +82,7 @@ export default function UsersPage() {
   };
 
   const handleDelete = async (u: User) => {
-    if (u.username === 'hnaqvi') { alert('Cannot delete the primary admin account.'); return; }
+    if (u.username === 'naqvi@htxheart.com') { alert('Cannot delete the primary admin account.'); return; }
     if (confirm(`Delete user "${u.displayName}"?`)) {
       await deleteUser(u.username);
       loadUsers();
@@ -179,7 +179,7 @@ export default function UsersPage() {
                       <div className="flex gap-2">
                         <button onClick={() => openEditModal(u)} className="btn-secondary !py-1 !px-2 !text-xs">Edit</button>
                         <button onClick={() => openPwModal(u)} className="btn-secondary !py-1 !px-2 !text-xs">Change PW</button>
-                        {u.username !== 'hnaqvi' && (
+                        {u.username !== 'naqvi@htxheart.com' && (
                           <button onClick={() => handleDelete(u)} className="btn-danger !py-1 !px-2 !text-xs">Delete</button>
                         )}
                       </div>
