@@ -23,7 +23,7 @@ function sanitizeKey(username: string): string {
 // Default users - seeded on first load
 const DEFAULT_USERS: Record<string, { displayName: string; password: string; role: UserRole }> = {
   'naqvi@htxheart.com': { displayName: 'Humayun Naqvi, MD', password: 'Whhc1140!!', role: 'physician' },
-  'admin@htxheart.com': { displayName: 'Mariam Rizvi', password: 'Whhc11421!!', role: 'admin' },
+  'admin@htxheart.com': { displayName: 'Mariam Rizvi', password: 'Whhc1140!!', role: 'admin' },
   'whhcpatientcare@htxheart.com': { displayName: 'Marie Londo', password: 'Whhc1140!!', role: 'clinical' },
 };
 
