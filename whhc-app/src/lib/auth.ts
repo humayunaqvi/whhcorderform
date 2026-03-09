@@ -1,8 +1,10 @@
 import type { User, Session, UserRole } from '@/types';
+import { db, DB_PREFIX } from './firebase';
+import { ref, get, set, update, remove } from 'firebase/database';
 
 const SESSION_KEY = 'whhc_session';
-const USERS_KEY = 'whhc_users_v2';
 const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours
+const USERS_REF = `${DB_PREFIX}/users`;
 
 // SHA-256 hash for passwords
 async function hashPassword(password: string): Promise<string> {
@@ -11,6 +13,11 @@ async function hashPassword(password: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Sanitize username for use as Firebase key (Firebase keys cannot contain . $ # [ ] /)
+function sanitizeKey(username: string): string {
+  return username.toLowerCase().replace(/[.#$\[\]/]/g, '_');
 }
 
 // Default users - seeded on first load
@@ -22,27 +29,23 @@ const DEFAULT_USERS: Record<string, { displayName: string; password: string; rol
   staff2: { displayName: 'Staff 2', password: 'staff123', role: 'staff' },
 };
 
-function getUsers(): Record<string, any> {
+async function getUsers(): Promise<Record<string, any>> {
   try {
-    const raw = localStorage.getItem(USERS_KEY);
-    return raw ? JSON.parse(raw) : {};
+    const snapshot = await get(ref(db, USERS_REF));
+    return snapshot.exists() ? snapshot.val() : {};
   } catch {
     return {};
   }
 }
 
-function saveUsers(users: Record<string, any>): void {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
-
 export async function seedDefaultUsers(): Promise<void> {
-  const existing = getUsers();
+  const existing = await getUsers();
 
   // Migrate old roles (tracker → admin, clinic_staff → clinical)
   if (Object.keys(existing).length > 0) {
     let migrated = false;
-    for (const username of Object.keys(existing)) {
-      const user = existing[username];
+    for (const key of Object.keys(existing)) {
+      const user = existing[key];
       if (user.role === 'tracker') {
         user.role = 'admin';
         migrated = true;
@@ -51,13 +54,16 @@ export async function seedDefaultUsers(): Promise<void> {
         migrated = true;
       }
     }
-    if (migrated) saveUsers(existing);
+    if (migrated) {
+      await set(ref(db, USERS_REF), existing);
+    }
     return; // Already seeded
   }
 
   const users: Record<string, object> = {};
   for (const [username, info] of Object.entries(DEFAULT_USERS)) {
-    users[username] = {
+    const key = sanitizeKey(username);
+    users[key] = {
       id: username,
       username,
       displayName: info.displayName,
@@ -66,12 +72,13 @@ export async function seedDefaultUsers(): Promise<void> {
       createdAt: new Date().toISOString(),
     };
   }
-  saveUsers(users);
+  await set(ref(db, USERS_REF), users);
 }
 
 export async function login(username: string, password: string): Promise<Session | null> {
-  const users = getUsers();
-  const user = users[username.toLowerCase()];
+  const users = await getUsers();
+  const key = sanitizeKey(username);
+  const user = users[key];
   if (!user) return null;
 
   const hash = await hashPassword(password);
@@ -90,10 +97,9 @@ export async function login(username: string, password: string): Promise<Session
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
 
   // Update last login
-  user.lastLogin = new Date().toISOString();
-  const allUsers = getUsers();
-  allUsers[username.toLowerCase()] = user;
-  saveUsers(allUsers);
+  await update(ref(db, `${USERS_REF}/${key}`), {
+    lastLogin: new Date().toISOString(),
+  });
 
   return session;
 }
@@ -125,16 +131,15 @@ export async function addUser(
 ): Promise<boolean> {
   try {
     const hash = await hashPassword(password);
-    const users = getUsers();
-    users[username.toLowerCase()] = {
+    const key = sanitizeKey(username);
+    await set(ref(db, `${USERS_REF}/${key}`), {
       id: username.toLowerCase(),
       username: username.toLowerCase(),
       displayName,
       passwordHash: hash,
       role,
       createdAt: new Date().toISOString(),
-    };
-    saveUsers(users);
+    });
     return true;
   } catch {
     return false;
@@ -143,9 +148,8 @@ export async function addUser(
 
 export async function deleteUser(username: string): Promise<boolean> {
   try {
-    const users = getUsers();
-    delete users[username];
-    saveUsers(users);
+    const key = sanitizeKey(username);
+    await remove(ref(db, `${USERS_REF}/${key}`));
     return true;
   } catch {
     return false;
@@ -153,7 +157,7 @@ export async function deleteUser(username: string): Promise<boolean> {
 }
 
 export async function getAllUsers(): Promise<User[]> {
-  const users = getUsers();
+  const users = await getUsers();
   return Object.values(users).map((u: any) => ({
     id: u.id,
     username: u.username,
@@ -173,13 +177,11 @@ export async function getAllUsers(): Promise<User[]> {
 export async function changePassword(username: string, newPassword: string): Promise<boolean> {
   try {
     const hash = await hashPassword(newPassword);
-    const users = getUsers();
-    if (users[username]) {
-      users[username].passwordHash = hash;
-      saveUsers(users);
-      return true;
-    }
-    return false;
+    const key = sanitizeKey(username);
+    const snapshot = await get(ref(db, `${USERS_REF}/${key}`));
+    if (!snapshot.exists()) return false;
+    await update(ref(db, `${USERS_REF}/${key}`), { passwordHash: hash });
+    return true;
   } catch {
     return false;
   }
@@ -199,10 +201,15 @@ export async function updateUser(
   }
 ): Promise<boolean> {
   try {
-    const users = getUsers();
-    if (!users[username]) return false;
-    users[username] = { ...users[username], ...updates };
-    saveUsers(users);
+    const key = sanitizeKey(username);
+    const snapshot = await get(ref(db, `${USERS_REF}/${key}`));
+    if (!snapshot.exists()) return false;
+    // Remove undefined values before updating
+    const cleanUpdates: Record<string, any> = {};
+    for (const [k, v] of Object.entries(updates)) {
+      if (v !== undefined) cleanUpdates[k] = v;
+    }
+    await update(ref(db, `${USERS_REF}/${key}`), cleanUpdates);
     return true;
   } catch {
     return false;
@@ -210,6 +217,11 @@ export async function updateUser(
 }
 
 export async function getUserData(username: string): Promise<any | null> {
-  const users = getUsers();
-  return users[username] || null;
+  try {
+    const key = sanitizeKey(username);
+    const snapshot = await get(ref(db, `${USERS_REF}/${key}`));
+    return snapshot.exists() ? snapshot.val() : null;
+  } catch {
+    return null;
+  }
 }
