@@ -22,12 +22,9 @@ function sanitizeKey(username: string): string {
 
 // Default users - seeded on first load
 const DEFAULT_USERS: Record<string, { displayName: string; password: string; role: UserRole }> = {
-  hnaqvi: { displayName: 'Dr. Naqvi', password: 'Whhc1140!!', role: 'physician' },
-  whhcadmin: { displayName: 'WHHC Admin', password: 'Whhc11421!!', role: 'admin' },
-  whhcclinical: { displayName: 'Clinical Coordinator', password: 'clinical123', role: 'clinical' },
+  'naqvi@htxheart.com': { displayName: 'Humayun Naqvi, MD', password: 'Whhc1140!!', role: 'physician' },
+  'admin@htxheart.com': { displayName: 'Mariam Rizvi', password: 'Whhc11421!!', role: 'admin' },
   'whhcpatientcare@htxheart.com': { displayName: 'Marie Londo', password: 'Whhc1140!!', role: 'clinical' },
-  staff1: { displayName: 'Staff 1', password: 'staff123', role: 'staff' },
-  staff2: { displayName: 'Staff 2', password: 'staff123', role: 'staff' },
 };
 
 async function getUsers(): Promise<Record<string, any>> {
