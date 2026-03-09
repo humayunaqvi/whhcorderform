@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getSession, login as authLogin, logout as authLogout, seedDefaultUsers } from './auth';
+import { getSession, login as authLogin, logout as authLogout, seedDefaultUsers, getUserData, refreshSession } from './auth';
 import type { Session } from '@/types';
 
 interface AuthContextType {
@@ -23,9 +23,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    seedDefaultUsers().then(() => {
+    seedDefaultUsers().then(async () => {
       const s = getSession();
-      setSession(s);
+      if (s) {
+        // Sync session role/displayName from Firebase in case they changed
+        const updated = await refreshSession(s);
+        setSession(updated);
+      }
       setLoading(false);
     });
   }, []);

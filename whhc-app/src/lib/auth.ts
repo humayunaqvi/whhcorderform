@@ -153,6 +153,24 @@ export function getSession(): Session | null {
   }
 }
 
+export async function refreshSession(session: Session): Promise<Session> {
+  try {
+    const key = sanitizeKey(session.username);
+    const snapshot = await get(ref(db, `${USERS_REF}/${key}`));
+    if (snapshot.exists()) {
+      const user = snapshot.val();
+      if (user.role !== session.role || user.displayName !== session.displayName) {
+        session.role = user.role;
+        session.displayName = user.displayName;
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      }
+    }
+  } catch {
+    // ignore errors, keep existing session
+  }
+  return session;
+}
+
 export function logout(): void {
   sessionStorage.removeItem(SESSION_KEY);
 }
