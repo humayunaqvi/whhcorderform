@@ -110,8 +110,10 @@ export async function seedDefaultUsers(): Promise<void> {
 }
 
 export async function login(username: string, password: string): Promise<Session | null> {
+  // Allow entering just the local part (e.g. "whhcpatientcare" → "whhcpatientcare@htxheart.com")
+  const normalizedUsername = username.includes('@') ? username.trim() : `${username.trim()}@htxheart.com`;
   const users = await getUsers();
-  const key = sanitizeKey(username);
+  const key = sanitizeKey(normalizedUsername);
   const user = users[key];
   if (!user) return null;
 
