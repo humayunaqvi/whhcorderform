@@ -22,7 +22,7 @@ function sanitizeKey(username: string): string {
 
 // Default users - seeded on first load
 const DEFAULT_USERS: Record<string, { displayName: string; password: string; role: UserRole }> = {
-  'naqvi@htxheart.com': { displayName: 'Humayun Naqvi, MD', password: 'Whhc1140!!', role: 'physician' },
+  'naqvi@htxheart.com': { displayName: 'Humayun Naqvi, MD', password: 'Whhc1140!!', role: 'admin' },
   'admin@htxheart.com': { displayName: 'Mariam Rizvi', password: 'Whhc1140!!', role: 'admin' },
   'whhcpatientcare@htxheart.com': { displayName: 'Marie Londo', password: 'Whhc1140!!', role: 'clinical' },
 };
@@ -39,6 +39,12 @@ async function getUsers(): Promise<Record<string, any>> {
 export async function seedDefaultUsers(): Promise<void> {
   const existing = await getUsers();
 
+  // Remove duplicate 'hnaqvi' account (naqvi@htxheart.com is the master)
+  if (existing['hnaqvi']) {
+    delete existing['hnaqvi'];
+    await remove(ref(db, `${USERS_REF}/hnaqvi`));
+  }
+
   // Migrate old roles (tracker → admin, clinic_staff → clinical)
   if (Object.keys(existing).length > 0) {
     let changed = false;
@@ -52,7 +58,7 @@ export async function seedDefaultUsers(): Promise<void> {
         changed = true;
       }
     }
-    // Add any missing default users and sync displayNames
+    // Add any missing default users and sync displayNames and roles
     for (const [username, info] of Object.entries(DEFAULT_USERS)) {
       const key = sanitizeKey(username);
       if (!existing[key]) {
@@ -65,9 +71,15 @@ export async function seedDefaultUsers(): Promise<void> {
           createdAt: new Date().toISOString(),
         };
         changed = true;
-      } else if (existing[key].displayName !== info.displayName) {
-        existing[key].displayName = info.displayName;
-        changed = true;
+      } else {
+        if (existing[key].displayName !== info.displayName) {
+          existing[key].displayName = info.displayName;
+          changed = true;
+        }
+        if (existing[key].role !== info.role) {
+          existing[key].role = info.role;
+          changed = true;
+        }
       }
     }
     if (changed) {
