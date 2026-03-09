@@ -2,13 +2,13 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD1TVMfNmh1kONRsXRSW_hyuqgvT4eqfxg",
-  authDomain: "whhcorderform.firebaseapp.com",
-  databaseURL: "https://whhcorderform-default-rtdb.firebaseio.com",
-  projectId: "whhcorderform",
-  storageBucket: "whhcorderform.appspot.com",
-  messagingSenderId: "998553620096",
-  appId: "1:998553620096:web:ffd5ab75680d61d7cf6065"
+  apiKey: "AIzaSyBcnSHwNkHdhBK6-8xLpsPfHnHgmPdl4pc",
+  authDomain: "whhc-clinic.firebaseapp.com",
+  databaseURL: "https://whhc-clinic-default-rtdb.firebaseio.com",
+  projectId: "whhc-clinic",
+  storageBucket: "whhc-clinic.firebasestorage.app",
+  messagingSenderId: "420295059908",
+  appId: "1:420295059908:web:bfd814b3128a42ced71c91"
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];

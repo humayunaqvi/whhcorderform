@@ -2,13 +2,13 @@ import { initializeApp, getApp } from 'firebase/app';
 import { getDatabase } from 'firebase/database';
 
 const rotationConfig = {
-  apiKey: "AIzaSyBf3Ks7kxcNy3U2k0fDEqtpLHDPhDdKCpc",
-  authDomain: "whhc-rotation-schedule.firebaseapp.com",
-  databaseURL: "https://whhc-rotation-schedule-default-rtdb.firebaseio.com",
-  projectId: "whhc-rotation-schedule",
-  storageBucket: "whhc-rotation-schedule.firebasestorage.app",
-  messagingSenderId: "20990716822",
-  appId: "1:20990716822:web:e00fde7b8b137e471f0bb7"
+  apiKey: "AIzaSyBcnSHwNkHdhBK6-8xLpsPfHnHgmPdl4pc",
+  authDomain: "whhc-clinic.firebaseapp.com",
+  databaseURL: "https://whhc-clinic-default-rtdb.firebaseio.com",
+  projectId: "whhc-clinic",
+  storageBucket: "whhc-clinic.firebasestorage.app",
+  messagingSenderId: "420295059908",
+  appId: "1:420295059908:web:bfd814b3128a42ced71c91"
 };
 
 let rotationApp;
