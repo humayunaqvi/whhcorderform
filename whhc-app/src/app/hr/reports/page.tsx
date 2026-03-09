@@ -153,7 +153,7 @@ export default function PayrollReportsPage() {
   };
 
   return (
-    <AppShell allowedRoles={['physician', 'admin', 'clinical']}>
+    <AppShell allowedRoles={['physician', 'admin']}>
       <div className="max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold text-white mb-6">Payroll Reports</h2>
 

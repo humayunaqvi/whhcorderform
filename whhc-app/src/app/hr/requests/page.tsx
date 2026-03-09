@@ -71,7 +71,7 @@ export default function EmployeeRequestsPage() {
   };
 
   return (
-    <AppShell allowedRoles={['physician', 'admin', 'clinical']}>
+    <AppShell allowedRoles={['physician', 'admin']}>
       <div className="max-w-5xl mx-auto">
         <h2 className="text-2xl font-bold text-white mb-6">Employee Requests</h2>
 

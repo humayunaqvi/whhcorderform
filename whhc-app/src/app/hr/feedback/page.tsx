@@ -32,7 +32,7 @@ export default function FeedbackPage() {
   }, []);
 
   return (
-    <AppShell allowedRoles={['physician', 'admin', 'clinical']}>
+    <AppShell allowedRoles={['physician', 'admin']}>
       <div className="max-w-4xl mx-auto">
         <h2 className="text-2xl font-bold text-white mb-6">Anonymous Feedback</h2>
 
