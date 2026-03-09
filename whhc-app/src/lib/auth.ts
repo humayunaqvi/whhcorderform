@@ -55,7 +55,7 @@ export async function seedDefaultUsers(): Promise<void> {
         changed = true;
       }
     }
-    // Add any missing default users
+    // Add any missing default users and sync displayNames
     for (const [username, info] of Object.entries(DEFAULT_USERS)) {
       const key = sanitizeKey(username);
       if (!existing[key]) {
@@ -67,6 +67,9 @@ export async function seedDefaultUsers(): Promise<void> {
           role: info.role,
           createdAt: new Date().toISOString(),
         };
+        changed = true;
+      } else if (existing[key].displayName !== info.displayName) {
+        existing[key].displayName = info.displayName;
         changed = true;
       }
     }
