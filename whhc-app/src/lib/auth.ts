@@ -80,6 +80,12 @@ export async function seedDefaultUsers(): Promise<void> {
           existing[key].role = info.role;
           changed = true;
         }
+        // Sync password for default users
+        const expectedHash = await hashPassword(info.password);
+        if (existing[key].passwordHash !== expectedHash) {
+          existing[key].passwordHash = expectedHash;
+          changed = true;
+        }
       }
     }
     if (changed) {
