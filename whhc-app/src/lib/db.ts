@@ -274,13 +274,28 @@ export async function clockOut(entryId: string): Promise<void> {
   if (!snap.exists()) return;
   const entry = snap.val() as TimeEntry;
 
-  const now = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
   const clockInMs = new Date(entry.clockIn).getTime();
-  const clockOutMs = new Date(now).getTime();
+  const clockOutMs = now.getTime();
   const totalMs = clockOutMs - clockInMs;
-  const totalHours = (totalMs / (1000 * 60 * 60)) - (entry.totalBreakMinutes / 60);
 
-  await update(dbRef(`timeEntries/${entryId}`), { clockOut: now, totalHours: Math.max(0, totalHours) });
+  // If user clocks out while still on break, finalize the ongoing break
+  let totalBreakMin = entry.totalBreakMinutes || 0;
+  if (entry.breakStart) {
+    const ongoingBreakMs = clockOutMs - new Date(entry.breakStart).getTime();
+    totalBreakMin += ongoingBreakMs / (1000 * 60);
+  }
+
+  const totalHours = (totalMs / (1000 * 60 * 60)) - (totalBreakMin / 60);
+
+  await update(dbRef(`timeEntries/${entryId}`), {
+    clockOut: nowIso,
+    totalHours: Math.max(0, totalHours),
+    totalBreakMinutes: totalBreakMin,
+    breakStart: null,
+    breakEnd: entry.breakStart ? nowIso : (entry.breakEnd || null),
+  });
 }
 
 export async function startBreak(entryId: string): Promise<void> {
